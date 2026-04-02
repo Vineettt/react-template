@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthProtectionProvider } from "@/contexts/AuthProtectionContext";
+import { ConditionalSidebarWrapper } from "@/components/conditional-sidebar-wrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,10 +44,12 @@ export default function RootLayout({
         >
           <AuthProvider>
             <AuthProtectionProvider>
-              <div className="fixed bottom-4 right-4 z-50">
-                <ThemeToggle />
-              </div>
-              {children}
+              <ConditionalSidebarWrapper>
+                {children}
+                <div className="fixed bottom-4 right-4 z-50">
+                  <ThemeToggle />
+                </div>
+              </ConditionalSidebarWrapper>
             </AuthProtectionProvider>
           </AuthProvider>
         </ThemeProvider>

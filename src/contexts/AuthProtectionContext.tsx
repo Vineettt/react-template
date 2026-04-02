@@ -48,11 +48,7 @@ export function AuthProtectionProvider({ children }: { children: React.ReactNode
 
         if (loggedIn() && !publicPaths.includes(pathname)) {
             setIsCheckingPermissions(true);
-            console.log('Checking permissions for:', pathname);
-            console.log('User data:', user);
-            console.log('User permissions:', user?.permissions);
             const hasPermission = checkPermission(pathname);
-            console.log('hasPermission', hasPermission);
             if (!hasPermission) {
                 router.push('/misc/permission-denied');
                 return;

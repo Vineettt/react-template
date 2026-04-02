@@ -1,0 +1,108 @@
+{
+  "config": {
+    "collapsible": true,
+    "collapsibleType": "icon",
+    "showRail": true
+  },
+  "header": {
+    "title": "React Template",
+    "subtitle": "Dashboard",
+    "icon": "LayoutDashboard"
+  },
+  "navigation": [
+    {
+      "title": "Dashboard",
+      "url": "/dashboard/main",
+      "icon": "LayoutDashboard",
+      "permissionRequired": false,
+      "permissionArray": []
+    },
+    {
+      "title": "User Management",
+      "url": "",
+      "icon": "Users",
+      "permissionRequired": false,
+      "permissionArray": ["users_post"],
+      "children": [
+        {
+          "title": "All Users",
+          "url": "/account/users",
+          "icon": "UserCircle",
+          "permissionRequired": false,
+          "permissionArray": ["users_post"],
+          "iconByRole": {
+            "admin": "UserCheck",
+            "manager": "UserCog",
+            "default": "UserCircle"
+          }
+        },
+        {
+          "title": "UR Mapping",
+          "url": "/account/user-role",
+          "icon": "Link",
+          "permissionRequired": false,
+          "permissionArray": ["user_role_mapping_post"],
+          "iconByRole": {
+            "admin": "GitBranch",
+            "manager": "Share2",
+            "default": "Link"
+          }
+        }
+      ]
+    },
+    {
+      "title": "Role & Route Management",
+      "url": "",
+      "icon": "Shield",
+      "permissionRequired": false,
+      "permissionArray": ["role_route_mappings_post"],
+      "children": [
+        {
+          "title": "Role & Route Mapping",
+          "url": "/mapping/route-role",
+          "icon": "GitBranch",
+          "permissionRequired": false,
+          "permissionArray": ["role_route_mappings_post"],
+          "iconByRole": {
+            "admin": "GitMerge",
+            "manager": "GitPullRequest",
+            "default": "GitBranch"
+          }
+        },
+        {
+          "title": "Route",
+          "url": "/mapping/route",
+          "icon": "Map",
+          "permissionRequired": false,
+          "permissionArray": ["routes_post"],
+          "iconByRole": {
+            "admin": "MapPin",
+            "manager": "Navigation",
+            "default": "Map"
+          }
+        },
+        {
+          "title": "Role",
+          "url": "/mapping/role",
+          "icon": "UserCheck",
+          "permissionRequired": false,
+          "permissionArray": ["roles_post"],
+          "iconByRole": {
+            "admin": "Crown",
+            "manager": "Award",
+            "default": "UserCheck"
+          }
+        }
+      ]
+    }
+  ],
+  "footer": [
+    {
+      "title": "Logout",
+      "url": "#logout",
+      "icon": "LogOut",
+      "action": "logout",
+      "permissionRequired": false
+    }
+  ]
+}
