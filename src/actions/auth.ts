@@ -1,6 +1,6 @@
 "use server"
 
-import { apiFetch, ApiError, getErrorMessage } from "@/utils/api"
+import { apiFetch, ApiError, getErrorMessage } from "@/utils/apiUtils"
 import { Endpoint, HttpMethod } from "@/constants/route"
 
 export async function loginAction(prevState: string | undefined, formData: FormData) {

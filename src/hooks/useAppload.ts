@@ -1,10 +1,11 @@
 import { useStorage } from "./useStorage";
 import { STORAGE_KEYS } from "../constants/storage";
+import { useCallback } from "react";
 
 export const useAppLoad = () => {
     const { getItem, setItem, removeItem } = useStorage();
 
-    const storeUserData = (user: any, token?: string) => {
+    const storeUserData = useCallback((user: any, token?: string) => {
         setItem(STORAGE_KEYS.USER, user);
         setItem(STORAGE_KEYS.PERMISSIONS, user.permissions || []);
         
@@ -12,9 +13,9 @@ export const useAppLoad = () => {
           setItem(STORAGE_KEYS.TOKEN, token);
         }
         return { user: user, roles: user.roles, id: user.id };
-    }
+    }, [setItem]);
 
-    const loadUser = () => {
+    const loadUser = useCallback(() => {
         const users = getItem(STORAGE_KEYS.USER);
         if (users == undefined) {
           return null;
@@ -23,17 +24,17 @@ export const useAppLoad = () => {
         const roles = users.roles;
         const id = users.id;
         return { user: users, roles: roles, id: id, permissions };
-    }
+    }, [getItem]);
 
-    const loadToken = () => {
+    const loadToken = useCallback(() => {
         const token = getItem(STORAGE_KEYS.TOKEN);
         if (token == null) {
           return null;
         }
         return { token: token };
-    }
+    }, [getItem]);
 
-    const loggedIn = () => {
+    const loggedIn = useCallback(() => {
         const token = getItem(STORAGE_KEYS.TOKEN);
         if (!token) return false;
 
@@ -43,13 +44,13 @@ export const useAppLoad = () => {
         } catch {
           return false;
         }
-    }
+    }, [getItem]);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         removeItem(STORAGE_KEYS.TOKEN);
         removeItem(STORAGE_KEYS.USER);
         removeItem(STORAGE_KEYS.PERMISSIONS);
-    }
+    }, [removeItem]);
 
     return {
         storeUserData,

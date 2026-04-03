@@ -1,72 +1,108 @@
 "use client"
 
+import { useForm } from "react-hook-form"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { loginAction } from "@/actions/auth"
-import { useActionState } from "react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Eye, EyeOff } from "lucide-react"
 import { useAppLoad } from "@/hooks/useAppload"
 
+interface LoginFormData {
+  email: string
+  password: string
+}
+
 export function LoginForm() {
     const router = useRouter()
-    const [state, formAction, isPending] = useActionState(loginAction, undefined)
     const [showPassword, setShowPassword] = useState(false)
     const { storeUserData } = useAppLoad()
 
-    useEffect(() => {
-        if (state) {
-            try {
-                const response = JSON.parse(state)
-                
-                if (response.success) {
-                    if (response.user && response.token) {
-                        storeUserData(response.user, response.token)
-                    }
-                    
-                    toast.success(response.message)
-                    if (response.redirectTo) {
-                        router.push(response.redirectTo)
-                    }
-                } else {
-                    toast.error(response.message)
-                }
-            } catch (error) {
-                toast.error("Invalid response from server")
-            }
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+        setError
+    } = useForm<LoginFormData>({
+        defaultValues: {
+            email: "",
+            password: ""
         }
-    }, [state])
+    })
+
+    const onSubmit = async (data: LoginFormData) => {
+        const formData = new FormData()
+        formData.append("email", data.email)
+        formData.append("password", data.password)
+
+        try {
+            const result = await loginAction(undefined, formData)
+            const response = JSON.parse(result)
+
+            if (response.success) {
+                if (response.user && response.token) {
+                    storeUserData(response.user, response.token)
+                }
+                toast.success(response.message)
+                if (response.redirectTo) {
+                    router.push(response.redirectTo)
+                }
+            } else {
+                toast.error(response.message)
+                if (response.field === "email") {
+                    setError("email", { message: response.message })
+                } else if (response.field === "password") {
+                    setError("password", { message: response.message })
+                }
+            }
+        } catch (error) {
+            toast.error("Invalid response from server")
+        }
+    }
 
     return (
         <Card className="w-full max-w-sm">
             <CardHeader>
                 <CardTitle>Login</CardTitle>
             </CardHeader>
-            <form action={formAction} className="flex flex-col gap-4 p-4">              
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-6">
                     <div className="grid gap-2">
                         <label htmlFor="email">Email</label>
                         <Input
                             id="email"
-                            name="email"
                             type="email"
                             placeholder="Email"
-                            required
+                            {...register("email", {
+                                required: "Email is required",
+                                pattern: {
+                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                    message: "Invalid email address"
+                                }
+                            })}
                         />
+                        {errors.email && (
+                            <span className="text-sm text-red-500">{errors.email.message}</span>
+                        )}
                     </div>
                     <div className="grid gap-2">
                         <label htmlFor="password">Password</label>
                         <InputGroup>
                             <InputGroupInput
                                 id="password"
-                                name="password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
-                                required
+                                {...register("password", {
+                                    required: "Password is required",
+                                    minLength: {
+                                        value: 6,
+                                        message: "Password must be at least 6 characters"
+                                    }
+                                })}
                             />
                             <InputGroupAddon align="inline-end">
                                 <InputGroupButton
@@ -84,10 +120,13 @@ export function LoginForm() {
                                 </InputGroupButton>
                             </InputGroupAddon>
                         </InputGroup>
+                        {errors.password && (
+                            <span className="text-sm text-red-500">{errors.password.message}</span>
+                        )}
                     </div>
                     <div className="flex justify-between gap-2">
-                        <Button type="submit" variant="outline" disabled={isPending}>
-                            {isPending ? "Logging in..." : "Login"}
+                        <Button type="submit" variant="outline" disabled={isSubmitting}>
+                            {isSubmitting ? "Logging in..." : "Login"}
                         </Button>
                     </div>
                 </div>

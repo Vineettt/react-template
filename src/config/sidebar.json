@@ -12,7 +12,7 @@
   "navigation": [
     {
       "title": "Dashboard",
-      "url": "/dashboard/main",
+      "url": "/dashboard",
       "icon": "LayoutDashboard",
       "permissionRequired": false,
       "permissionArray": []
@@ -21,14 +21,14 @@
       "title": "User Management",
       "url": "",
       "icon": "Users",
-      "permissionRequired": false,
-      "permissionArray": ["users_post"],
+      "permissionRequired": true,
+      "permissionArray": ["users_post", "user_role_mapping_post"],
       "children": [
         {
-          "title": "All Users",
+          "title": "Users",
           "url": "/account/users",
           "icon": "UserCircle",
-          "permissionRequired": false,
+          "permissionRequired": true,
           "permissionArray": ["users_post"],
           "iconByRole": {
             "admin": "UserCheck",
@@ -40,7 +40,7 @@
           "title": "UR Mapping",
           "url": "/account/user-role",
           "icon": "Link",
-          "permissionRequired": false,
+          "permissionRequired": true,
           "permissionArray": ["user_role_mapping_post"],
           "iconByRole": {
             "admin": "GitBranch",
@@ -54,14 +54,14 @@
       "title": "Role & Route Management",
       "url": "",
       "icon": "Shield",
-      "permissionRequired": false,
-      "permissionArray": ["role_route_mappings_post"],
+      "permissionRequired": true,
+      "permissionArray": ["role_route_mappings_post", "routes_post", "roles_post"],
       "children": [
         {
           "title": "Role & Route Mapping",
           "url": "/mapping/route-role",
           "icon": "GitBranch",
-          "permissionRequired": false,
+          "permissionRequired": true,
           "permissionArray": ["role_route_mappings_post"],
           "iconByRole": {
             "admin": "GitMerge",
@@ -73,7 +73,7 @@
           "title": "Route",
           "url": "/mapping/route",
           "icon": "Map",
-          "permissionRequired": false,
+          "permissionRequired": true,
           "permissionArray": ["routes_post"],
           "iconByRole": {
             "admin": "MapPin",
@@ -85,7 +85,7 @@
           "title": "Role",
           "url": "/mapping/role",
           "icon": "UserCheck",
-          "permissionRequired": false,
+          "permissionRequired": true,
           "permissionArray": ["roles_post"],
           "iconByRole": {
             "admin": "Crown",

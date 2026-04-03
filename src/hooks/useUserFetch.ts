@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { apiFetch, ApiError } from "@/utils/api";
+import { apiFetch, ApiError } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 
 interface User {
@@ -12,7 +12,7 @@ interface User {
 export const useUserFetch = () => {
   const fetchUser = useCallback(async (): Promise<User | null> => {
     try {
-      const response = await apiFetch<User>(Endpoint.USER);
+      const response = await apiFetch(Endpoint.USER);
       
       if (response.success && response.data) {
         return response.data;

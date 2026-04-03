@@ -6,13 +6,12 @@ import { useUserFetch } from "@/hooks/useUserFetch";
 
 interface AuthType {
     loading: boolean;
-    loggedIn: boolean;
 }
 
 const AuthContext = createContext<AuthType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { loggedIn } = useAppLoad();
+    const { loggedIn, storeUserData } = useAppLoad();
     const { fetchUser } = useUserFetch();
     const [loading, setLoading] = useState(true);
     const hasFetchedRef = useRef(false);
@@ -22,7 +21,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!hasFetchedRef.current && loggedIn()) {
                 hasFetchedRef.current = true;
                 try {
-                    await fetchUser();                    
+                    const response = await fetchUser();
+                    if (response && response.user) {
+                        storeUserData(response.user);
+                    }
                 } catch (error) {
                     console.error('Auth initialization error:', error);
                 }
@@ -34,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ loading, loggedIn: loggedIn() }}>
+        <AuthContext.Provider value={{ loading }}>
             {children}
         </AuthContext.Provider>
     );

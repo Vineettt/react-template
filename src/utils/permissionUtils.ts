@@ -10,13 +10,17 @@ export function checkUserPermissions(path: string, userPermissions: any[]): bool
             return false;
         }
 
+        let hasAllPermissions = false;
+
         for(const expectedPermission of expectedPermissions){
             const permissionConfig = permissionsConfig[expectedPermission];
-            let find = permission.find((p: any) => p?.endpoint === permissionConfig?.endpoint && p?.method === permissionConfig?.method);
-            if(!find){
-                return false;
+            const find = permission.find((p: any) => p?.endpoint === permissionConfig?.endpoint && p?.method === permissionConfig?.method);
+            if(find){
+                hasAllPermissions = true;
+                break;
             }
         }
+        return hasAllPermissions;
     }
     return true;
 }

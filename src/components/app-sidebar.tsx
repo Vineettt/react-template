@@ -44,12 +44,12 @@ import {
   Award,
   Share2
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { useAppLoad } from "@/hooks/useAppload";
 import { checkSidebarPermissions } from "@/utils/sidebarPermissionUtils";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 
 interface SidebarItem {
   title: string;
@@ -111,11 +111,15 @@ const iconMap = {
 
 export function AppSidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { logout } = useAuthProtection();
   const { loadUser } = useAppLoad();
   const { state, open, toggleSidebar } = useSidebar();
   const [sidebarConfig, setSidebarConfig] = useState<SidebarConfig | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // Memoize user data - only re-load when component mounts
+  const user = useMemo(() => loadUser(), [loadUser]);
 
   useEffect(() => {
     import("@/config/sidebar.json").then((module) => {
@@ -137,18 +141,17 @@ export function AppSidebar() {
     });
   };
 
-  const checkMenuItemPermissions = (item: SidebarItem): boolean => {
+  const checkMenuItemPermissions = useCallback((item: SidebarItem): boolean => {
     if (!item.permissionRequired) {
       return true;
     }
 
-    const user = loadUser();
     if (!user || !user.permissions) {
       return false;
     }
 
     return checkSidebarPermissions(item.permissionArray, user.permissions);
-  };
+  }, [user]);
 
   const handleMenuClick = (item: SidebarItem) => {
     if (!checkMenuItemPermissions(item)) {
@@ -167,7 +170,6 @@ export function AppSidebar() {
   };
 
   const getIconByRole = (item: SidebarItem) => {
-    const user = loadUser();
     const userRole = user?.roles?.[0]?.toLowerCase() || 'default';
     
     if (item.iconByRole) {
@@ -180,6 +182,11 @@ export function AppSidebar() {
     return getIcon(item.icon);
   };
 
+  const isActive = (itemUrl: string): boolean => {
+    if (!itemUrl || itemUrl === "") return false;
+    return pathname === itemUrl || pathname.startsWith(itemUrl + "/");
+  };
+
   const renderMenuItem = (item: SidebarItem, level: number = 0) => {
     const hasPermission = checkMenuItemPermissions(item);
     const hasChildren = item.children && item.children.length > 0;
@@ -190,17 +197,18 @@ export function AppSidebar() {
     }
 
     if (hasChildren) {
+      const isChildActive = item.children?.some(child => isActive(child.url)) ?? false;
       return (
         <SidebarMenuItem key={item.title}>
           <SidebarMenuButton 
-            className="hover:bg-sidebar-accent/50 transition-all duration-200"
+            className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${isChildActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`}
             onClick={() => toggleExpanded(item.title)}
           >
             {(() => {
               const IconComponent = getIconByRole(item);
-              return <IconComponent className="text-sidebar-foreground/80" />;
+              return <IconComponent className={`${isChildActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/80'}`} />;
             })()}
-            <span className="font-medium">{item.title}</span>
+            <span className={`font-medium ${isChildActive ? 'text-sidebar-accent-foreground' : ''}`}>{item.title}</span>
             <ChevronDown className={`ml-auto transition-transform duration-200 text-sidebar-foreground/60 ${isExpanded ? 'rotate-180' : ''}`} />
           </SidebarMenuButton>
           {isExpanded && (
@@ -212,18 +220,20 @@ export function AppSidebar() {
       );
     }
 
+    const active = isActive(item.url);
+
     return (
       <SidebarMenuItem key={item.title}>
         <SidebarMenuButton 
           onClick={() => handleMenuClick(item)}
           disabled={!hasPermission}
-          className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${!hasPermission ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''} ${!hasPermission ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {(() => {
             const IconComponent = getIconByRole(item);
-            return <IconComponent className="text-sidebar-foreground/80" />;
+            return <IconComponent className={`${active ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/80'}`} />;
           })()}
-          <span className="font-medium">{item.title}</span>
+          <span className={`font-medium ${active ? 'text-sidebar-accent-foreground' : ''}`}>{item.title}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
     );

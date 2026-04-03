@@ -4,21 +4,22 @@ export function checkSidebarPermissions(
   permissionArray: string[] | undefined,
   userPermissions: any[]
 ): boolean {
+  let hasAllPermissions = false;
   const permission = userPermissions || [];
-  
-  if (!permissionArray || permissionArray.length === 0) {
-    return false;
-  }
 
+  if (!permissionArray || permissionArray.length === 0) {
+    return hasAllPermissions;
+  }
   for (const expectedPermission of permissionArray) {
     const permissionConfig = permissionsConfig[expectedPermission];
-    let find = permission.find((p: any) => 
+    const find = permission.find((p: any) => 
       p?.endpoint === permissionConfig?.endpoint && p?.method === permissionConfig?.method
     );
-    if (!find) {
-      return false;
+    if (find) {
+      hasAllPermissions = true;
+      break;
     }
   }
-  
-  return true;
+
+  return hasAllPermissions;
 }
