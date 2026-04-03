@@ -29,24 +29,14 @@
           "url": "/account/users",
           "icon": "UserCircle",
           "permissionRequired": true,
-          "permissionArray": ["users_post"],
-          "iconByRole": {
-            "admin": "UserCheck",
-            "manager": "UserCog",
-            "default": "UserCircle"
-          }
+          "permissionArray": ["users_post"]
         },
         {
           "title": "UR Mapping",
           "url": "/account/user-role",
           "icon": "Link",
           "permissionRequired": true,
-          "permissionArray": ["user_role_mapping_post"],
-          "iconByRole": {
-            "admin": "GitBranch",
-            "manager": "Share2",
-            "default": "Link"
-          }
+          "permissionArray": ["user_role_mapping_post"]
         }
       ]
     },
@@ -62,36 +52,21 @@
           "url": "/mapping/route-role",
           "icon": "GitBranch",
           "permissionRequired": true,
-          "permissionArray": ["role_route_mappings_post"],
-          "iconByRole": {
-            "admin": "GitMerge",
-            "manager": "GitPullRequest",
-            "default": "GitBranch"
-          }
+          "permissionArray": ["role_route_mappings_post"]
         },
         {
           "title": "Route",
           "url": "/mapping/route",
           "icon": "Map",
           "permissionRequired": true,
-          "permissionArray": ["routes_post"],
-          "iconByRole": {
-            "admin": "MapPin",
-            "manager": "Navigation",
-            "default": "Map"
-          }
+          "permissionArray": ["routes_post"]
         },
         {
           "title": "Role",
           "url": "/mapping/role",
           "icon": "UserCheck",
           "permissionRequired": true,
-          "permissionArray": ["roles_post"],
-          "iconByRole": {
-            "admin": "Crown",
-            "manager": "Award",
-            "default": "UserCheck"
-          }
+          "permissionArray": ["roles_post"]
         }
       ]
     }

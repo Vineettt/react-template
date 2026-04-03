@@ -59,11 +59,6 @@ interface SidebarItem {
   permissionRequired?: boolean;
   permissionArray?: string[];
   children?: SidebarItem[];
-  iconByRole?: {
-    admin?: string;
-    manager?: string;
-    default: string;
-  };
 }
 
 interface SidebarConfig {
@@ -114,11 +109,9 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { logout } = useAuthProtection();
   const { loadUser } = useAppLoad();
-  const { state, open, toggleSidebar } = useSidebar();
   const [sidebarConfig, setSidebarConfig] = useState<SidebarConfig | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  // Memoize user data - only re-load when component mounts
   const user = useMemo(() => loadUser(), [loadUser]);
 
   useEffect(() => {
@@ -169,19 +162,6 @@ export function AppSidebar() {
     return iconMap[iconName as keyof typeof iconMap] || Home;
   };
 
-  const getIconByRole = (item: SidebarItem) => {
-    const userRole = user?.roles?.[0]?.toLowerCase() || 'default';
-    
-    if (item.iconByRole) {
-      const roleIcon = item.iconByRole[userRole as keyof typeof item.iconByRole];
-      if (roleIcon) {
-        return getIcon(roleIcon);
-      }
-    }
-    
-    return getIcon(item.icon);
-  };
-
   const isActive = (itemUrl: string): boolean => {
     if (!itemUrl || itemUrl === "") return false;
     return pathname === itemUrl || pathname.startsWith(itemUrl + "/");
@@ -205,7 +185,7 @@ export function AppSidebar() {
             onClick={() => toggleExpanded(item.title)}
           >
             {(() => {
-              const IconComponent = getIconByRole(item);
+              const IconComponent = getIcon(item.icon);
               return <IconComponent className={`${isChildActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/80'}`} />;
             })()}
             <span className={`font-medium ${isChildActive ? 'text-sidebar-accent-foreground' : ''}`}>{item.title}</span>
@@ -230,7 +210,7 @@ export function AppSidebar() {
           className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''} ${!hasPermission ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {(() => {
-            const IconComponent = getIconByRole(item);
+            const IconComponent = getIcon(item.icon);
             return <IconComponent className={`${active ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground/80'}`} />;
           })()}
           <span className={`font-medium ${active ? 'text-sidebar-accent-foreground' : ''}`}>{item.title}</span>
