@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { loginAction } from "@/actions/auth"
+import { apiFetch } from "@/utils/apiUtils"
+import { Endpoint } from "@/constants/route"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -35,29 +36,22 @@ export function LoginForm() {
     })
 
     const onSubmit = async (data: LoginFormData) => {
-        const formData = new FormData()
-        formData.append("email", data.email)
-        formData.append("password", data.password)
-
         try {
-            const result = await loginAction(undefined, formData)
-            const response = JSON.parse(result)
+            const response = await apiFetch(Endpoint.LOGIN, {
+                method: "POST",
+                body: JSON.stringify({ email: data.email, password: data.password })
+            })
 
-            if (response.success) {
-                if (response.user && response.token) {
-                    storeUserData(response.user, response.token)
+            if (response.success && response.data) {
+                if (response.data.user && response.data.token) {
+                    storeUserData(response.data.user, response.data.token)
                 }
-                toast.success(response.message)
-                if (response.redirectTo) {
-                    router.push(response.redirectTo)
-                }
+                toast.success(response.data.message || "Login successful!")
+                router.push("/dashboard")
             } else {
-                toast.error(response.message)
-                if (response.field === "email") {
-                    setError("email", { message: response.message })
-                } else if (response.field === "password") {
-                    setError("password", { message: response.message })
-                }
+                const message = response.message || "Login failed"
+                toast.error(message)
+                setError("email", { message })
             }
         } catch (error) {
             toast.error("Invalid response from server")
