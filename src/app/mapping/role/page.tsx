@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Endpoint } from "@/constants/route";
 import { Pencil, Trash2 } from "lucide-react";
+import { RoleDialog } from "@/components/dialogs/role/add-update";
+import { apiFetch } from "@/utils/apiUtils";
+import { toast } from "sonner";
 
 interface Role {
   id: string;
@@ -19,6 +20,8 @@ export default function Roles() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const pendingDeleteRef = useRef<Role | null>(null);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -34,8 +37,78 @@ export default function Roles() {
   };
 
   const handleDeleteClick = (role: Role) => {
-    // TODO: Delete role API call
-    console.log("Delete role:", role);
+    handleDelete(role);
+  };
+
+  const handleDelete = async (role: Role, ignoreKey?: boolean) => {
+    try {
+      const body: any = { roles: [{ role_id: role.id }] };
+      if (ignoreKey) {
+        body.IGNORE_KEY = "DELETE_ROLE";
+      }
+
+      const response = await apiFetch(Endpoint.ROLE, {
+        method: "DELETE",
+        body: JSON.stringify(body),
+      });
+
+      if (response?.warnings) {
+        pendingDeleteRef.current = role;
+        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
+          duration: 10000,
+          action: {
+            label: "Yes",
+            onClick: () => {
+              if (pendingDeleteRef.current) {
+                executeDelete(pendingDeleteRef.current, true);
+                pendingDeleteRef.current = null;
+              }
+            },
+          },
+          cancel: {
+            label: "No",
+            onClick: () => {
+              pendingDeleteRef.current = null;
+            },
+          },
+        });
+        return;
+      }
+
+      if (response.message) {
+        toast.success(response.message || "Role deleted successfully");
+        setRefreshTrigger((prev) => prev + 1);
+      } else {
+        const message = response.message || "Failed to delete role";
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("An error occurred while deleting role");
+    }
+  };
+
+  const executeDelete = async (role: Role, ignoreKey: boolean) => {
+    try {
+      const body: any = { roles: [{ role_id: role.id }] };
+      if (ignoreKey) {
+        body.IGNORE_KEY = "DELETE_ROLE";
+      }
+
+      const response = await apiFetch(Endpoint.ROLE, {
+        method: "DELETE",
+        body: JSON.stringify(body),
+      });
+
+      if (response.message) {
+        toast.success(response.message || "Role deleted successfully");
+        setRefreshTrigger((prev) => prev + 1);
+      } else {
+        const message = response.message || "Failed to delete role";
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("An error occurred while deleting role");
+    }
   };
 
   const columns: Column<Role>[] = [
@@ -57,6 +130,10 @@ export default function Roles() {
     },
   ];
 
+  const handleSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   return (
     <div className="p-4 flex flex-col gap-2.5">
       <DataTable<Role>
@@ -68,41 +145,22 @@ export default function Roles() {
         onAddClick={handleAddClick}
         actions={actions}
         emptyMessage="No roles found"
+        refreshTrigger={refreshTrigger}
       />
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-[600px]">
-            <CardHeader>
-              <CardTitle>Add Role</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {}}>Save</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-      {isEditModalOpen && selectedRole && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-[600px]">
-            <CardHeader>
-              <CardTitle>Edit Role</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {}}>Update</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <RoleDialog
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSuccess={handleSuccess}
+      />
+      <RoleDialog
+        open={isEditModalOpen}
+        onOpenChange={(open) => {
+          setIsEditModalOpen(open);
+          if (!open) setSelectedRole(null);
+        }}
+        role={selectedRole}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }
