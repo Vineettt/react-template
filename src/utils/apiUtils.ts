@@ -1,12 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
-
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -27,7 +20,7 @@ const getAuthToken = (): string | null => {
 export async function apiFetch<T = any>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<ApiResponse<T>> {
+): Promise<T> {
   const url = `${API_BASE_URL}/api/${endpoint.replace(/^\//, '')}`;
   
   const headers: Record<string, string> = {
@@ -48,17 +41,7 @@ export async function apiFetch<T = any>(
 
   try {
     const response = await fetch(url, requestInit);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new ApiError(response.status, errorText || 'Request failed');
-    }
-    
-    const data = await response.json();
-    return {
-      success: true,
-      data,
-    };
+    return await response.json();
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -70,28 +53,28 @@ export async function apiFetch<T = any>(
 export const api = {
   get: <T = any>(endpoint: string, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, { method: 'GET', headers }),
-    
+
   post: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    apiFetch<T>(endpoint, { 
-      method: 'POST', 
+    apiFetch<T>(endpoint, {
+      method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
-      headers 
+      headers
     }),
-    
+
   put: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    apiFetch<T>(endpoint, { 
-      method: 'PUT', 
+    apiFetch<T>(endpoint, {
+      method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
-      headers 
+      headers
     }),
-    
+
   patch: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
-    apiFetch<T>(endpoint, { 
-      method: 'PATCH', 
+    apiFetch<T>(endpoint, {
+      method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
-      headers 
+      headers
     }),
-    
+
   delete: <T = any>(endpoint: string, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, { method: 'DELETE', headers }),
 };

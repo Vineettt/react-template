@@ -1,6 +1,7 @@
 "use client"
 
 import { useForm } from "react-hook-form"
+import { mapApiErrorsToForm } from "@/utils/formErrorUtils"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -42,16 +43,25 @@ export function LoginForm() {
                 body: JSON.stringify({ email: data.email, password: data.password })
             })
 
-            if (response.success && response.data) {
-                if (response.data.user && response.data.token) {
-                    storeUserData(response.data.user, response.data.token)
-                }
-                toast.success(response.data.message || "Login successful!")
+            console.log(response)
+
+            if (response.user && response.token) {
+                storeUserData(response.user, response.token)
+                toast.success(response.message || "Login successful!")
                 router.push("/dashboard")
             } else {
-                const message = response.message || "Login failed"
-                toast.error(message)
-                setError("email", { message })
+                const hasFieldErrors = mapApiErrorsToForm(
+                    response,
+                    setError,
+                    [],
+                    toast.error
+                );
+                
+                if (!hasFieldErrors) {
+                    const message = response.message || "Login failed";
+                    toast.error(message);
+                    setError("email", { message });
+                }
             }
         } catch (error) {
             toast.error("Invalid response from server")

@@ -7,6 +7,7 @@ import { DataTable, Column, Action } from "@/components/data-table";
 import { Endpoint } from "@/constants/route";
 import { apiFetch } from "@/utils/apiUtils";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Role {
   id: string;
@@ -30,13 +31,14 @@ export default function RoleRouteMapping() {
     const fetchRoles = async () => {
       try {
         const response = await apiFetch(Endpoint.ROLE, { method: "GET" });
-        const rolesData = response.data?.payload || [];
+        const rolesData = response?.payload || [];
         setRoles(rolesData);
         if (rolesData.length > 0) {
           setSelectedRole(rolesData[0].id);
         }
       } catch (error) {
         console.error("Failed to fetch roles:", error);
+        toast.error("Failed to fetch roles");
       }
     };
     fetchRoles();
@@ -50,8 +52,21 @@ export default function RoleRouteMapping() {
     console.log("Add role route mapping clicked");
   };
 
-  const handleDeleteClick = (mapping: RoleRouteMapping) => {
-    console.log("Delete mapping:", mapping);
+  const handleDeleteClick = async (mapping: RoleRouteMapping) => {
+    try {
+      const response = await apiFetch(`${Endpoint.ROLE_ROUTE_MAPPING}/${mapping.id}`, {
+        method: "DELETE"
+      });
+
+      if (response.statusCode === 200 || response.success) {
+        toast.success(response.message || "Mapping deleted successfully");
+      } else {
+        const message = response.message || "Failed to delete mapping";
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Failed to delete mapping");
+    }
   };
 
   const columns: Column<RoleRouteMapping>[] = [

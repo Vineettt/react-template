@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Endpoint } from "@/constants/route";
 import { useDataTable } from "@/hooks/useDataTable";
 import { DataTableHeader } from "./data-table-header";
@@ -21,6 +21,7 @@ interface DataTableProps<T> {
   initialPageSize?: number;
   emptyMessage?: string;
   roleFilter?: string;
+  refreshTrigger?: number;
 }
 
 export function DataTable<T>({
@@ -36,15 +37,22 @@ export function DataTable<T>({
   initialPageSize = 10,
   emptyMessage = "No data found",
   roleFilter,
+  refreshTrigger,
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data, total, isLoading, pageIndex, pageSize, setPageIndex, setPageSize } =
+  const { data, total, isLoading, pageIndex, pageSize, setPageIndex, setPageSize, refetch } =
     useDataTable<T>({
       endpoint,
       initialPageSize,
       roleFilter,
       searchQuery,
     });
+
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   const totalPages = Math.ceil(total / pageSize) || 1;
 

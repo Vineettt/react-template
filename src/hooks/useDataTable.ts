@@ -49,8 +49,8 @@ export function useDataTable<T>({
         method: "POST",
         body: JSON.stringify(body),
       });
-      setData(response.data?.payload || []);
-      setTotal(response.data?.length || 0);
+      setData(response?.payload || []);
+      setTotal(response?.length || 0);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {

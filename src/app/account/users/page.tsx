@@ -4,10 +4,10 @@ import { useState } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Endpoint } from "@/constants/route";
 import { Pencil } from "lucide-react";
+import { AddUserDialog } from "@/components/dialogs/user/add";
+import { UpdateUserDialog } from "@/components/dialogs/user/update";
 
 interface User {
   id: string;
@@ -22,6 +22,7 @@ export default function Users() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -63,40 +64,22 @@ export default function Users() {
         onAddClick={handleAddClick}
         actions={actions}
         emptyMessage="No users found"
+        refreshTrigger={refreshKey}
       />
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-[600px]">
-            <CardHeader>
-              <CardTitle>Add User</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {}}>Save</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AddUserDialog 
+          open={isAddModalOpen} 
+          onOpenChange={setIsAddModalOpen} 
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+        />
       )}
       {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-[600px]">
-            <CardHeader>
-              <CardTitle>Edit User</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {}}>Update</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <UpdateUserDialog 
+          open={isEditModalOpen} 
+          onOpenChange={setIsEditModalOpen}
+          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          user={selectedUser}
+        />
       )}
     </div>
   );

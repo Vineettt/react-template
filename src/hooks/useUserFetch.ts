@@ -14,8 +14,8 @@ export const useUserFetch = () => {
     try {
       const response = await apiFetch(Endpoint.USER);
       
-      if (response.success && response.data) {
-        return response.data;
+      if (response.user) {
+        return response;
       } else {
         throw new Error(response.message || 'Failed to fetch user data');
       }

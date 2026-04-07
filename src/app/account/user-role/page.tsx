@@ -4,13 +4,12 @@ import { useState } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Endpoint } from "@/constants/route";
 import { Pencil } from "lucide-react";
+import { UserRoleDialog } from "@/components/dialogs/user/role/user";
 
 interface UserRole {
-  id: string;
+  us_fk_id: string;
   email: string;
   roles: string;
 }
@@ -19,6 +18,7 @@ export default function UserRole() {
   const { isCheckingPermissions } = useAuthProtection();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUserRole, setSelectedUserRole] = useState<UserRole | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -49,27 +49,21 @@ export default function UserRole() {
         title="User Role"
         endpoint={Endpoint.USER_ROLE_MAPPING}
         columns={columns}
-        keyExtractor={(ur) => ur.id}
+        keyExtractor={(ur) => ur.us_fk_id}
         actions={actions}
         emptyMessage="No user roles found"
+        refreshTrigger={refreshTrigger}
       />
-      {isEditModalOpen && selectedUserRole && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <Card className="w-[600px]">
-            <CardHeader>
-              <CardTitle>Update User Role</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {}}>Update</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <UserRoleDialog
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        userRole={selectedUserRole}
+        onSuccess={() => {
+          setRefreshTrigger((prev) => prev + 1);
+          setIsEditModalOpen(false);
+          setSelectedUserRole(null);
+        }}
+      />
     </div>
   );
 }
