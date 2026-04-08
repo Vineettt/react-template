@@ -21,14 +21,17 @@ export const useUserFetch = () => {
       }
     } catch (err) {
       let errorMessage = 'Failed to fetch user data';
-      
+
       if (err instanceof ApiError) {
         errorMessage = `Failed to fetch user: ${err.status}`;
+        if (err.status !== 401 && err.status !== 403) {
+          console.error('User fetch error:', errorMessage);
+        }
       } else if (err instanceof Error) {
         errorMessage = err.message;
+        console.error('User fetch error:', errorMessage);
       }
-      
-      console.error('User fetch error:', errorMessage);
+
       return null;
     }
   }, []);

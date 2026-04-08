@@ -43,8 +43,6 @@ export function LoginForm() {
                 body: JSON.stringify({ email: data.email, password: data.password })
             })
 
-            console.log(response)
-
             if (response.user && response.token) {
                 storeUserData(response.user, response.token)
                 toast.success(response.message || "Login successful!")
@@ -58,9 +56,8 @@ export function LoginForm() {
                 );
                 
                 if (!hasFieldErrors) {
-                    const message = response.message || "Login failed";
+                    const message = response.message || response?.errors?.message || "Login failed";
                     toast.error(message);
-                    setError("email", { message });
                 }
             }
         } catch (error) {

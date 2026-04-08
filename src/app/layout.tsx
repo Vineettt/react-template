@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthProtectionProvider } from "@/contexts/AuthProtectionContext";
 import { ConditionalSidebarWrapper } from "@/components/conditional-sidebar-wrapper";
+import { MaintenanceProvider } from "@/contexts/MaintenanceContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,16 +43,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <AuthProtectionProvider>
-              <ConditionalSidebarWrapper>
-                {children}
-                <div className="fixed bottom-4 right-4 z-50">
-                  <ThemeToggle />
-                </div>
-              </ConditionalSidebarWrapper>
-            </AuthProtectionProvider>
-          </AuthProvider>
+          <div className="fixed bottom-4 right-4 z-50">
+            <ThemeToggle />
+          </div>
+          <MaintenanceProvider>
+            <AuthProvider>
+              <AuthProtectionProvider>
+                <ConditionalSidebarWrapper>
+                  {children}
+                </ConditionalSidebarWrapper>
+              </AuthProtectionProvider>
+            </AuthProvider>
+          </MaintenanceProvider>
         </ThemeProvider>
       </body>
     </html>

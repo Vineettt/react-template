@@ -11,19 +11,32 @@ export function mapApiErrorsToForm<T extends FieldValues>(
   validFields: readonly string[] = [],
   toastError?: (message: string) => void
 ): boolean {
-  if (!response.errors) return false;
+  if (!response.errors || typeof response.errors !== 'object' || Array.isArray(response.errors)) {
+    return false;
+  }
 
   let hasErrors = false;
 
-  Object.entries(response.errors).forEach(([field, message]) => {
-    if (validFields.length === 0 || validFields.includes(field)) {
-      setError(field as any, { message: String(message) });
-      hasErrors = true;
-    }
-  });
+  try {
+    Object.entries(response.errors).forEach(([field, message]) => {
+      if (field === 'message') return;
+      if (validFields.length === 0 || validFields.includes(field)) {
+        setError(field as any, { message: String(message) });
+        hasErrors = true;
+      }
+    });
 
-  if (hasErrors && toastError) {
-    toastError(response.message || "Please fix the errors and try again");
+    if (hasErrors && toastError) {
+      const toastMessage = response.message ||
+        (typeof response.errors.message === 'string' ? response.errors.message : null) ||
+        "Please fix the errors and try again";
+      toastError(toastMessage);
+    }
+  } catch (error) {
+    console.error('mapApiErrorsToForm error:', error);
+    if (toastError) {
+      toastError("An error occurred while processing the response");
+    }
   }
 
   return hasErrors;

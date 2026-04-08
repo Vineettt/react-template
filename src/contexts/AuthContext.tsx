@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useAppLoad } from "@/hooks/useAppload";
 import { useUserFetch } from "@/hooks/useUserFetch";
+import { useMaintenanceContext } from "./MaintenanceContext";
 
 interface AuthType {
     loading: boolean;
@@ -13,11 +14,17 @@ const AuthContext = createContext<AuthType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { loggedIn, storeUserData } = useAppLoad();
     const { fetchUser } = useUserFetch();
+    const { isMaintenanceMode } = useMaintenanceContext();
     const [loading, setLoading] = useState(true);
     const hasFetchedRef = useRef(false);
 
     useEffect(() => {
         const initializeAuth = async () => {
+            if (isMaintenanceMode) {
+                setLoading(false);
+                return;
+            }
+
             if (!hasFetchedRef.current && loggedIn()) {
                 hasFetchedRef.current = true;
                 try {
@@ -33,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         initializeAuth();
-    }, []);
+    }, [isMaintenanceMode]);
 
     return (
         <AuthContext.Provider value={{ loading }}>

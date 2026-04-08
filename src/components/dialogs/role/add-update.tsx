@@ -124,10 +124,9 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
             },
           },
         });
-        return;
+      } else {
+        handleResponse(response);
       }
-
-      handleResponse(response);
     } catch (error) {
       toast.error(`An error occurred while ${isEditing ? "updating" : "creating"} role`);
     }

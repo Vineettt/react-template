@@ -25,5 +25,6 @@ export enum HttpMethod{
     USER_ROLE_MAPPING = "user-role-mapping",
     DONATIONS = "donations",
     DONATION = "donation",
-    DASHBOARD ="dashboard"
+    DASHBOARD ="dashboard",
+    HEALTH = "health"
   }
