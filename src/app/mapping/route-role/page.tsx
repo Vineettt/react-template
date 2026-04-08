@@ -6,9 +6,11 @@ import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
 import { Endpoint } from "@/constants/route";
 import { apiFetch } from "@/utils/apiUtils";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { RoleRouteMappingDialog } from "@/components/dialogs/role-route-mapping/modify";
+import { UpdateRouteDialog } from "@/components/dialogs/route/update";
+import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
 
 interface Role {
   id: string;
@@ -30,8 +32,18 @@ export default function RoleRouteMapping() {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedRoleForMapping, setSelectedRoleForMapping] = useState<Role | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const pendingDeleteRef = useRef<string | null>(null);
+  const [isRouteEditModalOpen, setIsRouteEditModalOpen] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<RoleRouteMapping | null>(null);
+  const tableRef = useRef<{ refetch: () => void }>(null);
+
+  const { mutate: handleDelete } = useMutationWithConfirm<string, any>({
+    endpoint: Endpoint.ROLE_ROUTE_MAPPING,
+    method: "DELETE",
+    onSuccess: () => tableRef.current?.refetch(),
+    successMessage: "Mapping deleted successfully",
+    deleteKey: "mapping_id",
+    deleteWrapper: "mapping",
+  });
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -55,64 +67,20 @@ export default function RoleRouteMapping() {
   }
 
   const handleAddClick = () => {
-    const role = roles.find((r) => r.id === selectedRole);
+    const role = roles.find(r => r.id === selectedRole);
     setSelectedRoleForMapping(role || null);
     setIsAddModalOpen(true);
   };
 
-  const executeDelete = async (mappingId: string, ignoreKey?: boolean) => {
-    const body: any = {
-      mapping: [{ mapping_id: mappingId }],
-    };
-    if (ignoreKey) {
-      body.IGNORE_KEY = "DELETE_ROLE_ROUTE_MAPPING";
-    }
-
-    const response = await apiFetch(Endpoint.ROLE_ROUTE_MAPPING, {
-      method: "DELETE",
-      body: JSON.stringify(body),
-    });
-
-    if (response.statusCode === 200 || response.message) {
-      toast.success(response.message || "Mapping deleted successfully");
-      setRefreshTrigger((prev) => prev + 1);
-    } else if (response.warnings) {
-      return response;
-    } else {
-      const message = response.message || "Failed to delete mapping";
-      toast.error(message);
-    }
-    return response;
+  const handleEditClick = (mapping: RoleRouteMapping) => {
+    const role = roles.find(r => r.id === selectedRole);
+    setSelectedRoleForMapping(role || null);
+    setIsAddModalOpen(true);
   };
 
-  const handleDeleteClick = async (mapping: RoleRouteMapping) => {
-    try {
-      const response = await executeDelete(mapping.id);
-
-      if (response?.warnings) {
-        pendingDeleteRef.current = mapping.id;
-        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
-          duration: 10000,
-          action: {
-            label: "Yes",
-            onClick: () => {
-              if (pendingDeleteRef.current) {
-                executeDelete(pendingDeleteRef.current, true);
-                pendingDeleteRef.current = null;
-              }
-            },
-          },
-          cancel: {
-            label: "No",
-            onClick: () => {
-              pendingDeleteRef.current = null;
-            },
-          },
-        });
-      }
-    } catch (error) {
-      toast.error("Failed to delete mapping");
-    }
+  const handleRouteEditClick = (mapping: RoleRouteMapping) => {
+    setSelectedRoute(mapping);
+    setIsRouteEditModalOpen(true);
   };
 
   const columns: Column<RoleRouteMapping>[] = [
@@ -124,17 +92,29 @@ export default function RoleRouteMapping() {
 
   const actions: Action<RoleRouteMapping>[] = [
     {
+      icon: <Pencil className="h-4 w-4" />,
+      onClick: handleRouteEditClick,
+      variant: "ghost",
+      size: "icon",
+    },
+    {
       icon: <Trash2 className="h-4 w-4" />,
-      onClick: handleDeleteClick,
+      onClick: (mapping: RoleRouteMapping) => handleDelete(mapping.id),
       variant: "ghost",
       size: "icon",
     },
   ];
 
   const handleSuccess = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    tableRef.current?.refetch();
     setIsAddModalOpen(false);
     setSelectedRoleForMapping(null);
+  };
+
+  const handleRouteSuccess = () => {
+    tableRef.current?.refetch();
+    setIsRouteEditModalOpen(false);
+    setSelectedRoute(null);
   };
 
   const roleSelect = (
@@ -164,7 +144,7 @@ export default function RoleRouteMapping() {
         actions={actions}
         roleFilter={selectedRole}
         emptyMessage="No mappings found"
-        refreshTrigger={refreshTrigger}
+        ref={tableRef}
       />
       <RoleRouteMappingDialog
         open={isAddModalOpen}
@@ -174,6 +154,21 @@ export default function RoleRouteMapping() {
         }}
         role={selectedRoleForMapping}
         onSuccess={handleSuccess}
+      />
+      <UpdateRouteDialog
+        open={isRouteEditModalOpen}
+        onOpenChange={(open) => {
+          setIsRouteEditModalOpen(open);
+          if (!open) setSelectedRoute(null);
+        }}
+        route={selectedRoute ? {
+          id: selectedRoute.route_id,
+          endpoint: selectedRoute.endpoint,
+          handler: selectedRoute.handler,
+          method: selectedRoute.method,
+        } : null}
+        roleId={selectedRole}
+        onSuccess={handleRouteSuccess}
       />
     </div>
   );

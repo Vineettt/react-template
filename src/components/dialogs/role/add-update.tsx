@@ -2,12 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { apiFetch } from "@/utils/apiUtils";
+import { useMutation } from "@/hooks/useMutation";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
 
@@ -36,7 +35,6 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
-    setError,
     watch,
   } = useForm<RoleFormData>({
     defaultValues: {
@@ -46,6 +44,22 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
 
   const roleValue = watch("role");
 
+  interface RoleResponse {
+    warnings?: { message: string };
+    message?: string;
+  }
+
+  const { mutate: submitRole } = useMutation<unknown, RoleResponse>({
+    endpoint: Endpoint.ROLE,
+    method: isEditing ? "PUT" : "POST",
+    successMessage: `Role ${isEditing ? "updated" : "created"} successfully`,
+    onSuccess: () => {
+      reset();
+      onOpenChange(false);
+      onSuccess?.();
+    },
+  });
+
   useEffect(() => {
     if (open) {
       reset({
@@ -54,90 +68,45 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
     }
   }, [open, role, reset]);
 
-  const submitRoleUpdate = async (data: RoleFormData, ignoreKey: boolean = false) => {
+  const executeSubmit = async (data: RoleFormData, ignoreKey: boolean) => {
     const payload = isEditing
-      ? { role: data.role, id: role?.id }
+      ? { role: data.role, id: role?.id, ignore_key: ignoreKey ? "EDIT_ROLE" : undefined }
       : { role: data.role };
 
-    const body: any = { roles: [payload] };
-    if (ignoreKey && isEditing) {
-      body.IGNORE_KEY = "EDIT_ROLE";
-    }
-
-    const response = await apiFetch(Endpoint.ROLE, {
-      method: isEditing ? "PUT" : "POST",
-      body: JSON.stringify(body),
-    });
-
-    return response;
-  };
-
-  const handleResponse = (response: any) => {
-    if (response.message || response.statusCode === 200 || response.success) {
-      toast.success(response.message || `Role ${isEditing ? "updated" : "created"} successfully!`);
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } else {
-      const hasFieldErrors = mapApiErrorsToForm(
-        response,
-        setError,
-        ["role"],
-        toast.error
-      );
-
-      if (!hasFieldErrors) {
-        const message = response.message || `Failed to ${isEditing ? "update" : "create"} role`;
-        toast.error(message);
-        setError("root", { message });
-      }
-    }
+    await submitRole({ roles: [payload] });
   };
 
   const onSubmit = async (data: RoleFormData) => {
-    try {
-      if (isEditing && data.role === role?.role) {
-        toast.info("No changes detected");
-        onOpenChange(false);
-        return;
-      }
-
-      const response = await submitRoleUpdate(data, false);
-
-      if (response?.warnings && isEditing) {
-        pendingSubmitRef.current = data;
-        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
-          duration: 10000,
-          action: {
-            label: "Yes",
-            onClick: () => {
-              if (pendingSubmitRef.current) {
-                executeSubmit(pendingSubmitRef.current, true);
-                pendingSubmitRef.current = null;
-              }
-            },
-          },
-          cancel: {
-            label: "No",
-            onClick: () => {
-              pendingSubmitRef.current = null;
-            },
-          },
-        });
-      } else {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error(`An error occurred while ${isEditing ? "updating" : "creating"} role`);
+    if (isEditing && data.role === role?.role) {
+      toast.info("No changes detected");
+      onOpenChange(false);
+      return;
     }
-  };
 
-  const executeSubmit = async (data: RoleFormData, ignoreKey: boolean) => {
-    try {
-      const response = await submitRoleUpdate(data, ignoreKey);
-      handleResponse(response);
-    } catch (error) {
-      toast.error(`An error occurred while ${isEditing ? "updating" : "creating"} role`);
+    const response = await submitRole({
+      roles: [isEditing ? { role: data.role, id: role?.id } : { role: data.role }],
+    });
+
+    if (response?.warnings && isEditing) {
+      pendingSubmitRef.current = data;
+      toast.warning(response.warnings.message || "Warning: Proceed with caution", {
+        duration: 10000,
+        action: {
+          label: "Yes",
+          onClick: () => {
+            if (pendingSubmitRef.current) {
+              executeSubmit(pendingSubmitRef.current, true);
+              pendingSubmitRef.current = null;
+            }
+          },
+        },
+        cancel: {
+          label: "No",
+          onClick: () => {
+            pendingSubmitRef.current = null;
+          },
+        },
+      });
     }
   };
 

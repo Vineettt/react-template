@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
@@ -22,7 +22,7 @@ export default function Users() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const tableRef = useRef<{ refetch: () => void }>(null);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -64,20 +64,20 @@ export default function Users() {
         onAddClick={handleAddClick}
         actions={actions}
         emptyMessage="No users found"
-        refreshTrigger={refreshKey}
+        ref={tableRef}
       />
       {isAddModalOpen && (
         <AddUserDialog 
           open={isAddModalOpen} 
           onOpenChange={setIsAddModalOpen} 
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          onSuccess={() => tableRef.current?.refetch()}
         />
       )}
       {isEditModalOpen && selectedUser && (
         <UpdateUserDialog 
           open={isEditModalOpen} 
           onOpenChange={setIsEditModalOpen}
-          onSuccess={() => setRefreshKey(prev => prev + 1)}
+          onSuccess={() => tableRef.current?.refetch()}
           user={selectedUser}
         />
       )}

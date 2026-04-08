@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiFetch } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
+import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
 
 interface User {
   id: string;
@@ -43,7 +44,31 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
   const [statuses, setStatuses] = useState<UserStatus[]>([]);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
 
-  const pendingSubmitRef = useRef<UpdateUserFormData | null>(null);
+  const { mutate } = useMutationWithConfirm<any, any>({
+    endpoint: Endpoint.USER,
+    method: "PUT",
+    onSuccess: (response) => {
+      if (response.message && !response.errors) {
+        toast.success(response.message);
+        reset();
+        onOpenChange(false);
+        onSuccess?.();
+      } else if (response.errors?.no) {
+        toast.info(response.errors.no);
+        onOpenChange(false);
+      } else {
+        const hasFieldErrors = mapApiErrorsToForm(response, setError, [], toast.error);
+        if (!hasFieldErrors) {
+          const message = response.message || "Failed to update user";
+          toast.error(message);
+          setError("root", { message });
+        }
+      }
+    },
+    onError: () => {
+      toast.error("An error occurred while updating user");
+    }
+  });
 
   const {
     register,
@@ -88,10 +113,10 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
     }
   }, [open, user, reset]);
 
-  const submitUserUpdate = async (data: UpdateUserFormData, ignoreKey: boolean = false) => {
-    if (!user) return null;
-
-    const body: any = {
+  const onSubmit = (data: UpdateUserFormData) => {
+    if (!user) return;
+    
+    const body = {
       user: [{
         id: user.id,
         email: data.email,
@@ -101,82 +126,7 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
       }],
     };
 
-    if (ignoreKey) {
-      body.IGNORE_KEY = "EDIT_USER";
-    }
-
-    const response = await apiFetch(Endpoint.USER, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-
-    return response;
-  };
-
-  const executeSubmit = async (data: UpdateUserFormData, ignoreKey: boolean = false) => {
-    try {
-      const response = await submitUserUpdate(data, ignoreKey);
-      if (response) {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating user");
-    }
-  };
-
-  const handleResponse = (response: any) => {
-    if (response.message && !response.errors) {
-      toast.success(response.message);
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } else if (response.errors?.no) {
-      toast.info(response.errors.no);
-      onOpenChange(false);
-    } else {
-      const hasFieldErrors = mapApiErrorsToForm(response, setError, [], toast.error);
-      if (!hasFieldErrors) {
-        const message = response.message || "Failed to update user";
-        toast.error(message);
-        setError("root", { message });
-      }
-    }
-  };
-
-  const onSubmit = async (data: UpdateUserFormData) => {
-    try {
-      const response = await submitUserUpdate(data, false);
-
-      if (response?.warnings) {
-        pendingSubmitRef.current = data;
-        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
-          duration: 10000,
-          action: {
-            label: "Yes",
-            onClick: () => {
-              if (pendingSubmitRef.current) {
-                executeSubmit(pendingSubmitRef.current, true);
-                pendingSubmitRef.current = null;
-              }
-            },
-          },
-          cancel: {
-            label: "No",
-            onClick: () => {
-              pendingSubmitRef.current = null;
-              onOpenChange(false);
-            },
-          },
-        });
-        return;
-      }
-
-      if (response) {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating user");
-    }
+    mutate(body);
   };
 
   if (!user) return null;

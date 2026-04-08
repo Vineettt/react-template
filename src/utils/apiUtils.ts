@@ -22,7 +22,7 @@ export async function apiFetch<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}/api/${endpoint.replace(/^\//, '')}`;
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept-Language': 'eu',
@@ -41,7 +41,17 @@ export async function apiFetch<T = any>(
 
   try {
     const response = await fetch(url, requestInit);
-    return await response.json();
+    const data = await response.json();
+
+    if (!response.ok && data?.warnings) {
+      return data;
+    }
+
+    if (!response.ok) {
+      throw new ApiError(response.status, data.message || 'Request failed');
+    }
+
+    return data;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -102,15 +112,15 @@ export const getErrorMessage = (error: any): string => {
       return error;
     }
   }
-  
+
   if (error?.message) {
     return error.message;
   }
-  
+
   if (error?.errors) {
     const errorMessages = Object.values(error.errors) as string[];
     return errorMessages[0] || 'An error occurred';
   }
-  
+
   return 'An unexpected error occurred';
 };

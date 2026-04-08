@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { apiFetch } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
 
 interface Role {
   id: string;
@@ -35,7 +36,32 @@ interface UserRoleDialogProps {
 export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: UserRoleDialogProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
-  const pendingSubmitRef = useRef<UserRoleFormData | null>(null);
+
+  const { mutate } = useMutationWithConfirm<any, any>({
+    endpoint: Endpoint.USER_ROLE_MAPPING,
+    method: "PUT",
+    onSuccess: (response) => {
+      if (response.info) {
+        toast.info(response.info);
+        return;
+      }
+      if (response.message && !response.errors) {
+        toast.success(response.message);
+        reset();
+        onOpenChange(false);
+        onSuccess?.();
+      } else if (response.errors?.no) {
+        toast.info(response.errors.no);
+        onOpenChange(false);
+      } else {
+        const message = response.message || "Failed to update user roles";
+        toast.error(message);
+      }
+    },
+    onError: () => {
+      toast.error("An error occurred while updating user roles");
+    }
+  });
 
   const {
     control,
@@ -75,8 +101,8 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
     }
   }, [open, userRole, reset]);
 
-  const submitUserRoleUpdate = async (data: UserRoleFormData, ignoreKey: boolean = false) => {
-    if (!userRole) return null;
+  const onSubmit = (data: UserRoleFormData) => {
+    if (!userRole) return;
 
     const currentRoleNames = userRole.roles.split(",").map((r) => r.trim()).filter(Boolean);
     const prevRoleIds = roles
@@ -92,7 +118,8 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
     const addedRoles = onlyInLeft(data.roleIds, prevRoleIds, isSimilar);
 
     if (removedRoles.length === 0 && addedRoles.length === 0) {
-      return { info: "No changes detected" };
+      toast.info("No changes detected");
+      return;
     }
 
     const mapping = data.roleIds.map((roleId) => ({
@@ -100,83 +127,8 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
       role_fk_id: roleId,
     }));
 
-    const body: any = { mapping };
-    if (ignoreKey) {
-      body.IGNORE_KEY = "EDIT_USER_ROLEE_MAPPING";
-    }
-
-    const response = await apiFetch(Endpoint.USER_ROLE_MAPPING, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-
-    return response;
-  };
-
-  const executeSubmit = async (data: UserRoleFormData, ignoreKey: boolean = false) => {
-    try {
-      const response = await submitUserRoleUpdate(data, ignoreKey);
-      if (response) {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating user roles");
-    }
-  };
-
-  const handleResponse = (response: any) => {
-    if (response.info) {
-      toast.info(response.info);
-      return;
-    }
-    if (response.message && !response.errors) {
-      toast.success(response.message);
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } else if (response.errors?.no) {
-      toast.info(response.errors.no);
-      onOpenChange(false);
-    } else {
-      const message = response.message || "Failed to update user roles";
-      toast.error(message);
-    }
-  };
-
-  const onSubmit = async (data: UserRoleFormData) => {
-    try {
-      const response = await submitUserRoleUpdate(data, false);
-
-      if (response?.warnings) {
-        pendingSubmitRef.current = data;
-        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
-          duration: 10000,
-          action: {
-            label: "Yes",
-            onClick: () => {
-              if (pendingSubmitRef.current) {
-                executeSubmit(pendingSubmitRef.current, true);
-                pendingSubmitRef.current = null;
-              }
-            },
-          },
-          cancel: {
-            label: "No",
-            onClick: () => {
-              pendingSubmitRef.current = null;
-              onOpenChange(false);
-            },
-          },
-        });
-        return;
-      }
-
-      if (response) {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating user roles");
-    }
+    const body = { mapping };
+    mutate(body);
   };
 
   if (!userRole) return null;

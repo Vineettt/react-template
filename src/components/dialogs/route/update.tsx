@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
 
 interface Route {
   id: string;
@@ -38,12 +39,41 @@ interface UpdateRouteDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   route?: Route | null;
+  roleId?: string;
 }
 
-export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route }: UpdateRouteDialogProps) {
+export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId }: UpdateRouteDialogProps) {
   const [handlers, setHandlers] = useState<HandlerOption[]>([]);
   const [isLoadingHandlers, setIsLoadingHandlers] = useState(false);
-  const pendingSubmitRef = useRef<RouteFormData | null>(null);
+
+  const { mutate } = useMutationWithConfirm<any, any>({
+    endpoint: Endpoint.ROUTE,
+    method: "PUT",
+    onSuccess: (response) => {
+      if (response?.message || response?.statusCode === 200 || response?.success) {
+        toast.success(response.message || "Route updated successfully!");
+        reset();
+        onOpenChange(false);
+        onSuccess?.();
+      } else {
+        const hasFieldErrors = mapApiErrorsToForm(
+          response,
+          setError,
+          ["handler"],
+          toast.error
+        );
+
+        if (!hasFieldErrors) {
+          const message = response.message || "Failed to update route";
+          toast.error(message);
+          setError("root", { message });
+        }
+      }
+    },
+    onError: () => {
+      toast.error("An error occurred while updating route");
+    }
+  });
 
   const {
     control,
@@ -71,7 +101,8 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route }: Upda
   useEffect(() => {
     if (open) {
       setIsLoadingHandlers(true);
-      apiFetch(Endpoint.HANDLER)
+      const endpoint = roleId ? `${Endpoint.HANDLER}?role_id=${roleId}` : Endpoint.HANDLER;
+      apiFetch(endpoint)
         .then((response) => {
           if (response.payload) {
             setHandlers(response.payload);
@@ -80,10 +111,16 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route }: Upda
         .catch(() => toast.error("Failed to load handlers"))
         .finally(() => setIsLoadingHandlers(false));
     }
-  }, [open]);
+  }, [open, roleId]);
 
-  const submitRouteUpdate = async (data: RouteFormData, ignoreKey: boolean = false) => {
-    if (!route) return null;
+  const onSubmit = (data: RouteFormData) => {
+    if (!route) return;
+
+    if (data.handler === route.handler) {
+      toast.info("No changes detected");
+      onOpenChange(false);
+      return;
+    }
 
     const payload = {
       routes: [{
@@ -92,93 +129,7 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route }: Upda
       }],
     };
 
-    const body: any = payload;
-    if (ignoreKey) {
-      body.IGNORE_KEY = "EDIT_ROUTE";
-    }
-
-    const response = await apiFetch(Endpoint.ROUTE, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-
-    return response;
-  };
-
-  const handleResponse = (response: any) => {
-    if (response?.message || response?.statusCode === 200 || response?.success) {
-      toast.success(response.message || "Route updated successfully!");
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } else {
-      const hasFieldErrors = mapApiErrorsToForm(
-        response,
-        setError,
-        ["handler"],
-        toast.error
-      );
-
-      if (!hasFieldErrors) {
-        const message = response.message || "Failed to update route";
-        toast.error(message);
-        setError("root", { message });
-      }
-    }
-  };
-
-  const onSubmit = async (data: RouteFormData) => {
-    if (!route) return;
-
-    try {
-      if (data.handler === route.handler) {
-        toast.info("No changes detected");
-        onOpenChange(false);
-        return;
-      }
-
-      const response = await submitRouteUpdate(data, false);
-
-      if (!response) return;
-
-      if (response?.warnings) {
-        pendingSubmitRef.current = data;
-        toast.warning(response.warnings.message || "Warning: Proceed with caution", {
-          duration: 10000,
-          action: {
-            label: "Yes",
-            onClick: () => {
-              if (pendingSubmitRef.current) {
-                executeSubmit(pendingSubmitRef.current, true);
-                pendingSubmitRef.current = null;
-              }
-            },
-          },
-          cancel: {
-            label: "No",
-            onClick: () => {
-              pendingSubmitRef.current = null;
-            },
-          },
-        });
-        return;
-      }
-
-      handleResponse(response);
-    } catch (error) {
-      toast.error("An error occurred while updating route");
-    }
-  };
-
-  const executeSubmit = async (data: RouteFormData, ignoreKey: boolean) => {
-    try {
-      const response = await submitRouteUpdate(data, ignoreKey);
-      if (response) {
-        handleResponse(response);
-      }
-    } catch (error) {
-      toast.error("An error occurred while updating route");
-    }
+    mutate(payload);
   };
 
   if (!route) return null;

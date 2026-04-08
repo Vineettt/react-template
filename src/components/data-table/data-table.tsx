@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import React, { ReactNode, useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
 import { Endpoint } from "@/constants/route";
 import { useDataTable } from "@/hooks/useDataTable";
 import { DataTableHeader } from "./data-table-header";
@@ -21,24 +21,29 @@ interface DataTableProps<T> {
   initialPageSize?: number;
   emptyMessage?: string;
   roleFilter?: string;
-  refreshTrigger?: number;
 }
 
-export function DataTable<T>({
-  title,
-  columns,
-  endpoint,
-  keyExtractor,
-  actions = [],
-  showAddButton = false,
-  onAddClick,
-  headerChildren,
-  searchEnabled = true,
-  initialPageSize = 10,
-  emptyMessage = "No data found",
-  roleFilter,
-  refreshTrigger,
-}: DataTableProps<T>) {
+interface DataTableRef {
+  refetch: () => void;
+}
+
+export const DataTable = forwardRef(function DataTable<T>(
+  {
+    title,
+    columns,
+    endpoint,
+    keyExtractor,
+    actions = [],
+    showAddButton = false,
+    onAddClick,
+    headerChildren,
+    searchEnabled = true,
+    initialPageSize = 10,
+    emptyMessage = "No data found",
+    roleFilter,
+  }: DataTableProps<T>,
+  ref: React.Ref<DataTableRef>
+) {
   const [searchQuery, setSearchQuery] = useState("");
   const { data, total, isLoading, pageIndex, pageSize, setPageIndex, setPageSize, refetch } =
     useDataTable<T>({
@@ -48,12 +53,18 @@ export function DataTable<T>({
       searchQuery,
     });
 
-  useEffect(() => {
-    if (refreshTrigger !== undefined) {
-      refetch();
-    }
-  }, [refreshTrigger, refetch]);
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
 
+  const stableRefetch = useCallback(() => {
+    refetchRef.current();
+  }, []);
+
+  useImperativeHandle(ref, () => ({
+    refetch: stableRefetch
+  }), []);
+
+  
   const totalPages = Math.ceil(total / pageSize) || 1;
 
   return (
@@ -87,4 +98,6 @@ export function DataTable<T>({
       />
     </div>
   );
-}
+}) as <T>(
+  props: DataTableProps<T> & { ref?: React.Ref<DataTableRef> }
+) => React.ReactElement;

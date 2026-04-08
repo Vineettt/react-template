@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
+import { useMutation } from "@/hooks/useMutation";
 
 interface AddUserFormData {
   first_name: string;
@@ -39,13 +40,10 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     },
   });
 
-  const onSubmit = async (data: AddUserFormData) => {
-    try {
-      const response = await apiFetch(Endpoint.USER, {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-
+  const { mutate, isLoading, error } = useMutation<AddUserFormData, any>({
+    endpoint: Endpoint.USER,
+    method: "POST",
+    onSuccess: (response) => {
       if (response.message) {
         toast.success(response.message || "User created successfully!");
         reset();
@@ -65,9 +63,14 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
           setError("root", { message });
         }
       }
-    } catch (error) {
+    },
+    onError: (error) => {
       toast.error("An error occurred while creating user");
     }
+  });
+
+  const onSubmit = (data: AddUserFormData) => {
+    mutate(data);
   };
 
   return (
@@ -146,11 +149,11 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Add User"}
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Add User"}
             </Button>
           </DialogFooter>
         </form>

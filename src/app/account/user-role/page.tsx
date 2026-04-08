@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
@@ -18,7 +18,7 @@ export default function UserRole() {
   const { isCheckingPermissions } = useAuthProtection();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUserRole, setSelectedUserRole] = useState<UserRole | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const tableRef = useRef<{ refetch: () => void }>(null);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -52,14 +52,14 @@ export default function UserRole() {
         keyExtractor={(ur) => ur.us_fk_id}
         actions={actions}
         emptyMessage="No user roles found"
-        refreshTrigger={refreshTrigger}
+        ref={tableRef}
       />
       <UserRoleDialog
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         userRole={selectedUserRole}
         onSuccess={() => {
-          setRefreshTrigger((prev) => prev + 1);
+          tableRef.current?.refetch();
           setIsEditModalOpen(false);
           setSelectedUserRole(null);
         }}

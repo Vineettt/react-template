@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
@@ -19,7 +19,7 @@ export default function Routes() {
   const { isCheckingPermissions } = useAuthProtection();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const tableRef = useRef<{ refetch: () => void }>(null);
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
@@ -46,7 +46,7 @@ export default function Routes() {
   ];
 
   const handleSuccess = () => {
-    setRefreshTrigger((prev) => prev + 1);
+    tableRef.current?.refetch();
   };
 
   return (
@@ -55,10 +55,10 @@ export default function Routes() {
         title="Routes"
         endpoint={Endpoint.ROUTES}
         columns={columns}
-        keyExtractor={(r) => r.id}
+        keyExtractor={(r: Route) => r.id}
         actions={actions}
         emptyMessage="No routes found"
-        refreshTrigger={refreshTrigger}
+        ref={tableRef}
       />
       <UpdateRouteDialog
         open={isEditModalOpen}

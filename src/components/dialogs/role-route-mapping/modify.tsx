@@ -9,6 +9,7 @@ import { apiFetch } from "@/utils/apiUtils";
 import { Endpoint, HttpMethod } from "@/constants/route";
 import { toast } from "sonner";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useMutation } from "@/hooks/useMutation";
 
 interface Route {
   id: string;
@@ -59,9 +60,10 @@ export function RoleRouteMappingDialog({
   const routeIdsValue = watch("routeIds");
 
   useEffect(() => {
-    if (open) {
+    if (open && role?.id) {
       setIsLoadingRoutes(true);
-      apiFetch(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify({ role: role?.id }) })
+      const requestBody = { role: role.id };
+      apiFetch(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify(requestBody) })
         .then((response) => {
           if (response.payload) {
             setRoutes(response.payload);
@@ -74,57 +76,45 @@ export function RoleRouteMappingDialog({
         routeIds: existingMappings || [],
       });
     }
-  }, [open]);
+  }, [open, role?.id]);
 
   const routeOptions = routes.map((route) => ({
     value: route.id,
     label: `${route.endpoint} [${route.method}]`,
   }));
 
-  const submitMappingUpdate = async (data: RoleRouteMappingFormData) => {
-    if (!data) return null;
+  const { mutate, isLoading } = useMutation<any, any>({
+    endpoint: Endpoint.ROLE_ROUTE_MAPPING,
+    method: "POST",
+    onSuccess: (response) => {
+      if (response?.message || response?.statusCode === 200 || response?.success) {
+        toast.success(response.message || "Routes created successfully!");
+        reset();
+        onOpenChange(false);
+        onSuccess?.();
+      } else {
+        const message = response.message || "Failed to create routes";
+        toast.error(message);
+      }
+    },
+    onError: () => {
+      toast.error("An error occurred while creating routes");
+    }
+  });
+
+  const onSubmit = (data: RoleRouteMappingFormData) => {
+    if (!role) return;
 
     const mappingArray = data.routeIds.map((routeId) => ({
       route_id: routeId,
       role_id: role?.id,
     }));
 
-    const body: any = {
+    const body = {
       mapping: mappingArray,
     };
 
-    const response = await apiFetch(Endpoint.ROLE_ROUTE_MAPPING, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-
-    return response;
-  };
-
-  const handleResponse = (response: any) => {
-    if (response?.message || response?.statusCode === 200 || response?.success) {
-      toast.success(response.message || "Routes created successfully!");
-      reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } else {
-      const message = response.message || "Failed to create routes";
-      toast.error(message);
-    }
-  };
-
-  const onSubmit = async (data: RoleRouteMappingFormData) => {
-    if (!role) return;
-
-    try {
-      const response = await submitMappingUpdate(data);
-
-      if (!response) return;
-
-      handleResponse(response);
-    } catch (error) {
-      toast.error("An error occurred while creating routes");
-    }
+    mutate(body);
   };
 
   if (!role) return null;
@@ -159,11 +149,11 @@ export function RoleRouteMappingDialog({
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || routeIdsValue.length === 0}>
-              {isSubmitting ? "Saving..." : "Save"}
+            <Button type="submit" disabled={isLoading || routeIdsValue.length === 0}>
+              {isLoading ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </form>

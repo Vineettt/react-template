@@ -5,7 +5,7 @@ import { mapApiErrorsToForm } from "@/utils/formErrorUtils"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { apiFetch } from "@/utils/apiUtils"
+import { apiFetch, ApiError } from "@/utils/apiUtils"
 import { Endpoint } from "@/constants/route"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -61,7 +61,11 @@ export function LoginForm() {
                 }
             }
         } catch (error) {
-            toast.error("Invalid response from server")
+            if (error instanceof ApiError) {
+                toast.error(error.message)
+            } else {
+                toast.error("An unexpected error occurred")
+            }
         }
     }
 
