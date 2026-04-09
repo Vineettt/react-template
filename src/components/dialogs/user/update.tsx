@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -44,7 +44,12 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
   const [statuses, setStatuses] = useState<UserStatus[]>([]);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
 
-  const { mutate } = useMutationWithConfirm<any, any>({
+  interface UserMutationResponse {
+    message?: string;
+    errors?: Record<string, string>;
+  }
+
+  const { mutate } = useMutationWithConfirm<unknown, UserMutationResponse>({
     endpoint: Endpoint.USER,
     method: "PUT",
     onSuccess: (response) => {
@@ -96,7 +101,10 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
       });
 
       setIsLoadingStatuses(true);
-      apiFetch(Endpoint.USER_STATUS)
+      interface StatusResponse {
+        payload: UserStatus[];
+      }
+      apiFetch<StatusResponse>(Endpoint.USER_STATUS)
         .then((response) => {
           if (response.payload) {
             setStatuses(response.payload || []);
@@ -107,9 +115,9 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
     }
   }, [open, user, reset]);
 
-  const onSubmit = (data: UpdateUserFormData) => {
+  const onSubmit = useCallback((data: UpdateUserFormData) => {
     if (!user) return;
-    
+
     const body = {
       user: [{
         id: user.id,
@@ -121,7 +129,11 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
     };
 
     mutate(body);
-  };
+  }, [user, mutate]);
+
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   if (!user) return null;
 
@@ -184,7 +196,7 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>Cancel</Button>
             <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Updating..." : "Update User"}</Button>
           </DialogFooter>
         </form>

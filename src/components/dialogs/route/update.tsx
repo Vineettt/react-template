@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -46,7 +46,13 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
   const [handlers, setHandlers] = useState<HandlerOption[]>([]);
   const [isLoadingHandlers, setIsLoadingHandlers] = useState(false);
 
-  const { mutate } = useMutationWithConfirm<any, any>({
+  interface RouteMutationResponse {
+    message?: string;
+    statusCode?: number;
+    success?: boolean;
+  }
+
+  const { mutate } = useMutationWithConfirm<unknown, RouteMutationResponse>({
     endpoint: Endpoint.ROUTE,
     method: "PUT",
     onSuccess: (response) => {
@@ -102,7 +108,10 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
     if (open) {
       setIsLoadingHandlers(true);
       const endpoint = roleId ? `${Endpoint.HANDLER}?role_id=${roleId}` : Endpoint.HANDLER;
-      apiFetch(endpoint)
+      interface HandlersResponse {
+        payload: HandlerOption[];
+      }
+      apiFetch<HandlersResponse>(endpoint)
         .then((response) => {
           if (response.payload) {
             setHandlers(response.payload);
@@ -113,7 +122,7 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
     }
   }, [open, roleId]);
 
-  const onSubmit = (data: RouteFormData) => {
+  const onSubmit = useCallback((data: RouteFormData) => {
     if (!route) return;
 
     if (data.handler === route.handler) {
@@ -130,7 +139,11 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
     };
 
     mutate(payload);
-  };
+  }, [route, onOpenChange, mutate]);
+
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   if (!route) return null;
 
@@ -176,7 +189,7 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

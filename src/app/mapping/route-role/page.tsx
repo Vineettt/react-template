@@ -41,7 +41,13 @@ export default function RoleRouteMapping() {
     onSuccess: () => tableRef.current?.refetch(),
   });
 
-  const { mutate: handleDelete } = useMutationWithConfirm<string, any>({
+  interface DeleteMutationResponse {
+    message?: string;
+    statusCode?: number;
+    success?: boolean;
+  }
+
+  const { mutate: handleDelete } = useMutationWithConfirm<string, DeleteMutationResponse>({
     endpoint: Endpoint.ROLE_ROUTE_MAPPING,
     method: "DELETE",
     onSuccess: () => tableRef.current?.refetch(),
@@ -53,7 +59,10 @@ export default function RoleRouteMapping() {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await apiFetch(Endpoint.ROLE, { method: "GET" });
+        interface RolesResponse {
+          payload: Role[];
+        }
+        const response = await apiFetch<RolesResponse>(Endpoint.ROLE, { method: "GET" });
         const rolesData = response?.payload || [];
         setRoles(rolesData);
         if (rolesData.length > 0) {
@@ -94,12 +103,14 @@ export default function RoleRouteMapping() {
 
   const actions: Action<RoleRouteMapping>[] = useMemo(() => [
     {
+      key: "edit",
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleRouteEditClick,
       variant: "ghost",
       size: "icon",
     },
     {
+      key: "delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: (mapping: RoleRouteMapping) => handleDelete(mapping.id),
       variant: "ghost",

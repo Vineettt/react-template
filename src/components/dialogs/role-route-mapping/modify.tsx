@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,10 @@ export function RoleRouteMappingDialog({
     if (open && role?.id) {
       setIsLoadingRoutes(true);
       const requestBody = { role: role.id };
-      apiFetch(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify(requestBody) })
+      interface RoutesResponse {
+        payload: Route[];
+      }
+      apiFetch<RoutesResponse>(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify(requestBody) })
         .then((response) => {
           if (response.payload) {
             setRoutes(response.payload);
@@ -83,7 +86,13 @@ export function RoleRouteMappingDialog({
     label: `${route.endpoint} [${route.method}]`,
   }));
 
-  const { mutate, isLoading } = useMutation<any, any>({
+  interface MappingMutationResponse {
+    message?: string;
+    statusCode?: number;
+    success?: boolean;
+  }
+
+  const { mutate, isLoading } = useMutation<unknown, MappingMutationResponse>({
     endpoint: Endpoint.ROLE_ROUTE_MAPPING,
     method: "POST",
     onSuccess: (response) => {
@@ -102,7 +111,7 @@ export function RoleRouteMappingDialog({
     }
   });
 
-  const onSubmit = (data: RoleRouteMappingFormData) => {
+  const onSubmit = useCallback((data: RoleRouteMappingFormData) => {
     if (!role) return;
 
     const mappingArray = data.routeIds.map((routeId) => ({
@@ -115,7 +124,11 @@ export function RoleRouteMappingDialog({
     };
 
     mutate(body);
-  };
+  }, [role, mutate]);
+
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   if (!role) return null;
 
@@ -149,7 +162,7 @@ export function RoleRouteMappingDialog({
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isLoading}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading || routeIdsValue.length === 0}>

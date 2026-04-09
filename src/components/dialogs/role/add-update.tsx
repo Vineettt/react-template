@@ -77,6 +77,10 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
     setPendingConfirmData(null);
   }, [isEditing, role?.id, submitRole]);
 
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
+
   const onSubmit = async (data: RoleFormData) => {
     if (isEditing && data.role === role?.role) {
       toast.info("No changes detected");
@@ -136,7 +140,7 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

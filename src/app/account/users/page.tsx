@@ -51,6 +51,7 @@ export default function Users() {
 
   const actions: Action<User>[] = useMemo(() => [
     {
+      key: "edit",
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleEditClick,
       variant: "ghost",

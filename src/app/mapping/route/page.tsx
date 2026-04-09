@@ -40,6 +40,7 @@ export default function Routes() {
 
   const actions: Action<Route>[] = useMemo(() => [
     {
+      key: "edit",
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleEditClick,
       variant: "ghost",

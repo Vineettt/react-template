@@ -17,7 +17,7 @@ const getAuthToken = (): string | null => {
   return null;
 };
 
-export async function apiFetch<T = any>(
+export async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -61,37 +61,37 @@ export async function apiFetch<T = any>(
 }
 
 export const api = {
-  get: <T = any>(endpoint: string, headers?: Record<string, string>) =>
+  get: <T = unknown>(endpoint: string, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, { method: 'GET', headers }),
 
-  post: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  post: <T = unknown>(endpoint: string, body?: unknown, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
       headers
     }),
 
-  put: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  put: <T = unknown>(endpoint: string, body?: unknown, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
       headers
     }),
 
-  patch: <T = any>(endpoint: string, body?: any, headers?: Record<string, string>) =>
+  patch: <T = unknown>(endpoint: string, body?: unknown, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, {
       method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
       headers
     }),
 
-  delete: <T = any>(endpoint: string, headers?: Record<string, string>) =>
+  delete: <T = unknown>(endpoint: string, headers?: Record<string, string>) =>
     apiFetch<T>(endpoint, { method: 'DELETE', headers }),
 };
 
 
-export const getErrorMessage = (error: any): string => {
-  if (typeof error === 'string') {
+export const getErrorMessage = (error: unknown): string => {
+  if (typeof error === "string") {
     try {
       const parsed = JSON.parse(error);
       if (parsed.errors) {
@@ -100,16 +100,16 @@ export const getErrorMessage = (error: any): string => {
       }
       return parsed.message || error;
     } catch {
-      return error;
+      return error as string;
     }
   }
 
-  if (error?.message) {
-    return error.message;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    return (error as { message: string }).message;
   }
 
-  if (error?.errors) {
-    const errorMessages = Object.values(error.errors) as string[];
+  if (typeof error === "object" && error !== null && "message" in error && "errors" in error) {
+    const errorMessages = Object.values((error as { errors: Record<string, string> }).errors) as string[];
     return errorMessages[0] || 'An error occurred';
   }
 

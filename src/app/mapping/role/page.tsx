@@ -27,7 +27,13 @@ export default function Roles() {
     onSuccess: () => tableRef.current?.refetch(),
   });
 
-  const { mutate: handleDelete } = useMutationWithConfirm<string, any>({
+  interface DeleteMutationResponse {
+    message?: string;
+    statusCode?: number;
+    success?: boolean;
+  }
+
+  const { mutate: handleDelete } = useMutationWithConfirm<string, DeleteMutationResponse>({
     endpoint: Endpoint.ROLE,
     method: "DELETE",
     onSuccess: () => tableRef.current?.refetch(),
@@ -54,12 +60,14 @@ export default function Roles() {
 
   const actions: Action<Role>[] = useMemo(() => [
     {
+      key: "edit",
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleEditClick,
       variant: "ghost",
       size: "icon",
     },
     {
+      key: "delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: (role) => handleDelete(role.id),
       variant: "ghost",

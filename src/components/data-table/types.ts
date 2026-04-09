@@ -10,6 +10,7 @@ export interface Column<T> {
 }
 
 export interface Action<T> {
+  key: string;
   icon: ReactNode;
   onClick: (row: T) => void;
   variant?: "default" | "ghost" | "outline";

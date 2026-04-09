@@ -1,12 +1,12 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { useCallback } from "react";
 import { mapApiErrorsToForm } from "@/utils/formErrorUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { apiFetch } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
 import { useMutation } from "@/hooks/useMutation";
@@ -40,7 +40,12 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     },
   });
 
-  const { mutate, isLoading, error } = useMutation<AddUserFormData, any>({
+  interface AddUserMutationResponse {
+    message?: string;
+    errors?: Record<string, string>;
+  }
+
+  const { mutate, isLoading } = useMutation<AddUserFormData, AddUserMutationResponse>({
     endpoint: Endpoint.USER,
     method: "POST",
     onSuccess: (response) => {
@@ -69,9 +74,13 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
     }
   });
 
-  const onSubmit = (data: AddUserFormData) => {
+  const onSubmit = useCallback((data: AddUserFormData) => {
     mutate(data);
-  };
+  }, [mutate]);
+
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,7 +158,7 @@ export function AddUserDialog({ open, onOpenChange, onSuccess }: AddUserDialogPr
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isLoading}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>

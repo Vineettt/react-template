@@ -73,9 +73,9 @@ export function DataTableBody<T>({
                     {actions.length > 0 && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          {actions.map((action, idx) => (
+                          {actions.map((action) => (
                             <Button
-                              key={idx}
+                              key={action.key}
                               variant={action.variant || "ghost"}
                               size={action.size || "icon"}
                               onClick={() => action.onClick(row)}

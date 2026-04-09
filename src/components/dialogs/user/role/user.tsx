@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,13 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
 
-  const { mutate } = useMutationWithConfirm<any, any>({
+  interface UserRoleMutationResponse {
+    info?: string;
+    message?: string;
+    errors?: Record<string, string>;
+  }
+
+  const { mutate } = useMutationWithConfirm<unknown, UserRoleMutationResponse>({
     endpoint: Endpoint.USER_ROLE_MAPPING,
     method: "PUT",
     onSuccess: (response) => {
@@ -82,17 +88,20 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
   useEffect(() => {
     if (open && userRole) {
       setIsLoadingRoles(true);
-      apiFetch(Endpoint.ROLE)
+      interface RolesResponse {
+        payload: Role[];
+      }
+      apiFetch<RolesResponse>(Endpoint.ROLE)
         .then((response) => {
           if (response.payload) {
-            const roleList = response?.payload || [];
+            const roleList = response.payload || [];
             setRoles(roleList);
             const currentRoleNames = userRole.roles.split(",").map((r) => r.trim()).filter(Boolean);
-            const filteredRoles = roleList.filter((role: Role) =>
+            const filteredRoles = roleList.filter((role) =>
               currentRoleNames.includes(role.role)
             );
             reset({
-              roleIds: filteredRoles.map((role: Role) => role.id),
+              roleIds: filteredRoles.map((role) => role.id),
             });
           }
         })
@@ -101,7 +110,7 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
     }
   }, [open, userRole, reset]);
 
-  const onSubmit = (data: UserRoleFormData) => {
+  const onSubmit = useCallback((data: UserRoleFormData) => {
     if (!userRole) return;
 
     const currentRoleNames = userRole.roles.split(",").map((r) => r.trim()).filter(Boolean);
@@ -129,7 +138,11 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
 
     const body = { mapping };
     mutate(body);
-  };
+  }, [userRole, roles, mutate]);
+
+  const handleCancel = useCallback(() => {
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   if (!userRole) return null;
 
@@ -160,7 +173,7 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
             </div>
           </div>
           <DialogFooter className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
