@@ -46,10 +46,11 @@ import {
 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
-import { useAppLoad } from "@/hooks/useAppload";
+import { useAuthStore } from "@/stores/authStore";
 import { checkSidebarPermissions } from "@/utils/sidebarPermissionUtils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { logger } from "@/utils/logger";
 
 interface SidebarItem {
   title: string;
@@ -108,21 +109,22 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuthProtection();
-  const { loadUser } = useAppLoad();
+  const { user } = useAuthStore();
   const [sidebarConfig, setSidebarConfig] = useState<SidebarConfig | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-
-  const user = useMemo(() => loadUser(), [loadUser]);
 
   useEffect(() => {
     import("@/config/sidebar.json").then((module) => {
       setSidebarConfig(module.default as SidebarConfig);
+      setConfigError(null);
     }).catch((error) => {
-      console.error("Failed to load sidebar configuration:", error);
+      logger.error("Failed to load sidebar configuration:", error);
+      setConfigError("Failed to load sidebar configuration");
     });
   }, []);
 
-  const toggleExpanded = (itemTitle: string) => {
+  const toggleExpanded = useCallback((itemTitle: string) => {
     setExpandedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemTitle)) {
@@ -132,21 +134,21 @@ export function AppSidebar() {
       }
       return newSet;
     });
-  };
+  }, []);
 
   const checkMenuItemPermissions = useCallback((item: SidebarItem): boolean => {
     if (!item.permissionRequired) {
       return true;
     }
 
-    if (!user || !user.permissions) {
+    if (!user?.permissions) {
       return false;
     }
 
     return checkSidebarPermissions(item.permissionArray, user.permissions);
-  }, [user]);
+  }, [user?.permissions]);
 
-  const handleMenuClick = (item: SidebarItem) => {
+  const handleMenuClick = useCallback((item: SidebarItem) => {
     if (!checkMenuItemPermissions(item)) {
       return;
     }
@@ -156,7 +158,7 @@ export function AppSidebar() {
     } else {
       router.push(item.url);
     }
-  };
+  }, [checkMenuItemPermissions, logout, router]);
 
   const getIcon = (iconName: string) => {
     return iconMap[iconName as keyof typeof iconMap] || Home;
@@ -180,7 +182,7 @@ export function AppSidebar() {
       const isChildActive = item.children?.some(child => isActive(child.url)) ?? false;
       return (
         <SidebarMenuItem key={item.title}>
-          <SidebarMenuButton 
+          <SidebarMenuButton
             className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${isChildActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''}`}
             onClick={() => toggleExpanded(item.title)}
           >
@@ -204,7 +206,7 @@ export function AppSidebar() {
 
     return (
       <SidebarMenuItem key={item.title}>
-        <SidebarMenuButton 
+        <SidebarMenuButton
           onClick={() => handleMenuClick(item)}
           disabled={!hasPermission}
           className={`hover:bg-sidebar-accent/50 transition-all duration-200 ${active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : ''} ${!hasPermission ? "opacity-50 cursor-not-allowed" : ""}`}

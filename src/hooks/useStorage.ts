@@ -45,7 +45,7 @@ export const useStorage = () => {
         return session.setItem(key, JSON.stringify(value));
     };
 
-    const isJsonString = (str: any) => {
+    const isJsonString = (str: string) => {
         try {
             JSON.parse(str);
         } catch (e) {

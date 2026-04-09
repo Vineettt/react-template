@@ -1,4 +1,5 @@
 import { FieldValues, UseFormSetError } from "react-hook-form";
+import { logger } from "./logger";
 
 interface ApiResponseWithErrors {
   errors?: Record<string, string>;
@@ -33,7 +34,7 @@ export function mapApiErrorsToForm<T extends FieldValues>(
       toastError(toastMessage);
     }
   } catch (error) {
-    console.error('mapApiErrorsToForm error:', error);
+    logger.error('mapApiErrorsToForm error:', error);
     if (toastError) {
       toastError("An error occurred while processing the response");
     }

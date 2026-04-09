@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Endpoint } from "@/constants/route";
-import { apiFetch } from "@/utils/apiUtils";
+import { apiFetch, getErrorMessage } from "@/utils/apiUtils";
 
 interface UseDataTableOptions {
   endpoint: Endpoint;
@@ -15,6 +15,7 @@ interface UseDataTableResult<T> {
   data: T[];
   total: number;
   isLoading: boolean;
+  error: string | null;
   pageIndex: number;
   pageSize: number;
   setPageIndex: (index: number) => void;
@@ -31,13 +32,20 @@ export function useDataTable<T>({
   const [data, setData] = useState<T[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(initialPageSize);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     try {
-      const body: any = {
+      interface DataTableRequest {
+        limit: number;
+        offset: number;
+        search: string;
+        role?: string;
+      }
+      const body: DataTableRequest = {
         limit: pageSize,
         offset: pageIndex * pageSize,
         search: searchQuery,
@@ -45,21 +53,31 @@ export function useDataTable<T>({
       if (roleFilter) {
         body.role = roleFilter;
       }
-      const response = await apiFetch(endpoint, {
+      interface DataTableResponse {
+        payload: T[];
+        length: number;
+      }
+      const response = await apiFetch<DataTableResponse>(endpoint, {
         method: "POST",
         body: JSON.stringify(body),
+        signal,
       });
       setData(response?.payload || []);
       setTotal(response?.length || 0);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+      setError(getErrorMessage(error) || "Failed to fetch data");
     } finally {
       setIsLoading(false);
     }
   }, [endpoint, pageIndex, pageSize, searchQuery, roleFilter]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
   const refetch = useCallback(() => {
@@ -70,6 +88,7 @@ export function useDataTable<T>({
     data,
     total,
     isLoading,
+    error,
     pageIndex,
     pageSize,
     setPageIndex,

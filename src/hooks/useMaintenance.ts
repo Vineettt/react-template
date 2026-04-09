@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, ApiError } from "@/utils/apiUtils";
+import { apiFetch, ApiError, getErrorMessage } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 
 interface MaintenanceState {
@@ -14,12 +14,12 @@ export const useMaintenance = (): MaintenanceState => {
   const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const checkServerStatus = useCallback(async () => {
+  const checkServerStatus = useCallback(async (signal?: AbortSignal) => {
     setIsChecking(true);
     setError(null);
 
     try {
-      const response = await apiFetch<{ message: string; maintenance?: boolean }>(Endpoint.HEALTH || "health");
+      const response = await apiFetch<{ message: string; maintenance?: boolean }>(Endpoint.HEALTH || "health", { signal });
 
       if (response.maintenance === true) {
         setIsMaintenanceMode(true);
@@ -28,16 +28,19 @@ export const useMaintenance = (): MaintenanceState => {
         setIsMaintenanceMode(false);
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       if (err instanceof ApiError) {
         if (err.status === 401 || err.status === 403) {
           setIsMaintenanceMode(false);
         } else {
           setIsMaintenanceMode(true);
-          setError(err.message || "Server is temporarily unavailable");
+          setError(getErrorMessage(err) || "Server is temporarily unavailable");
         }
       } else {
         setIsMaintenanceMode(true);
-        setError("Unable to connect to server. Please check your connection.");
+        setError(getErrorMessage(err) || "Unable to connect to server. Please check your connection.");
       }
     } finally {
       setIsChecking(false);
@@ -45,7 +48,9 @@ export const useMaintenance = (): MaintenanceState => {
   }, []);
 
   useEffect(() => {
-    checkServerStatus();
+    const controller = new AbortController();
+    checkServerStatus(controller.signal);
+    return () => controller.abort();
   }, [checkServerStatus]);
 
   return {

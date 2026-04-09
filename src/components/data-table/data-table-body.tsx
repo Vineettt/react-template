@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Column, Action } from "./types";
+import { useCallback } from "react";
 
 interface DataTableBodyProps<T> {
   data: T[];
@@ -21,6 +22,10 @@ export function DataTableBody<T>({
   isLoading,
   emptyMessage,
 }: DataTableBodyProps<T>) {
+  const handleActionClick = useCallback((action: Action<T>, row: T) => {
+    action.onClick(row);
+  }, []);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -78,7 +83,7 @@ export function DataTableBody<T>({
                               key={action.key}
                               variant={action.variant || "ghost"}
                               size={action.size || "icon"}
-                              onClick={() => action.onClick(row)}
+                              onClick={() => handleActionClick(action, row)}
                             >
                               {action.icon}
                             </Button>

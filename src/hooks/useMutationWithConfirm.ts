@@ -1,5 +1,5 @@
 import { useRef, useCallback } from "react";
-import { apiFetch, ApiError } from "@/utils/apiUtils";
+import { apiFetch, ApiError, getErrorMessage } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
 
@@ -13,7 +13,6 @@ interface UseMutationWithConfirmOptions<T, R> {
   warningMessage?: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  // Delete-specific options
   deleteKey?: string; // "role_id", "mapping_id", etc.
   deleteWrapper?: string; // "roles", "mapping", etc.
 }
@@ -21,11 +20,11 @@ interface UseMutationWithConfirmOptions<T, R> {
 interface MutationResponse<R> {
   warnings?: { message?: string; IGNORE_KEY?: string };
   message?: string;
-  errors?: any;
+  errors?: Record<string, string>;
   info?: string;
   statusCode?: number;
   success?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function useMutationWithConfirm<T = unknown, R = unknown>({
@@ -45,9 +44,8 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
 
   const executeMutation = useCallback(
     async (data: T, ignoreKey?: string) => {
-      let body: any = data;
+      let body: unknown = data;
       
-      // Handle delete patterns
       if (method === "DELETE" && deleteKey && deleteWrapper && typeof data === "string") {
         body = {
           [deleteWrapper]: [{ [deleteKey]: data }],
@@ -63,7 +61,7 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
 
       return await apiFetch<MutationResponse<R>>(endpoint, {
         method,
-        body: JSON.stringify(body),
+        body: JSON.stringify(body as object),
       });
     },
     [endpoint, method, deleteKey, deleteWrapper]
@@ -74,7 +72,6 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
       try {
         const response = await executeMutation(data);
 
-        // Handle info responses (like "No changes detected")
         if (response?.info) {
           toast.info(response.info);
           return;
@@ -95,7 +92,6 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
                       pendingMutationRef.current.ignoreKey
                     );
                     
-                    // Handle info responses in confirmation too
                     if (confirmResponse?.info) {
                       toast.info(confirmResponse.info);
                       return;
@@ -112,9 +108,7 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
                         ? error
                         : new ApiError(500, "Unknown error");
 
-                    if (errorMessage) {
-                      toast.error(apiError.message || errorMessage);
-                    }
+                    toast.error(getErrorMessage(apiError) || errorMessage || "An error occurred");
 
                     onError?.(apiError);
                   }
@@ -132,7 +126,6 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
           return;
         }
 
-        // Handle success responses
         if (successMessage || response?.message || response?.statusCode === 200 || response?.success) {
           toast.success(response?.message || successMessage);
         }
@@ -144,9 +137,7 @@ export function useMutationWithConfirm<T = unknown, R = unknown>({
             ? error
             : new ApiError(500, "Unknown error");
 
-        if (errorMessage) {
-          toast.error(apiError.message || errorMessage);
-        }
+        toast.error(getErrorMessage(apiError) || errorMessage || "An error occurred");
 
         onError?.(apiError);
       }

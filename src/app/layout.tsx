@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { AuthProtectionProvider } from "@/contexts/AuthProtectionContext";
-import { ConditionalSidebarWrapper } from "@/components/conditional-sidebar-wrapper";
-import { MaintenanceProvider } from "@/contexts/MaintenanceContext";
+import { AppProviders } from "@/components/providers/app-providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,25 +33,12 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Toaster />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <AppProviders>
           <div className="fixed bottom-4 right-4 z-50">
             <ThemeToggle />
           </div>
-          <MaintenanceProvider>
-            <AuthProvider>
-              <AuthProtectionProvider>
-                <ConditionalSidebarWrapper>
-                  {children}
-                </ConditionalSidebarWrapper>
-              </AuthProtectionProvider>
-            </AuthProvider>
-          </MaintenanceProvider>
-        </ThemeProvider>
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

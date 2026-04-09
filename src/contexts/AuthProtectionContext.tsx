@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "./AuthContext";
-import { useAppLoad } from "@/hooks/useAppload";
+import { useAuthStore } from "@/stores/authStore";
 import { checkUserPermissions } from "@/utils/permissionUtils";
 import { publicPaths } from "@/constants/permission";
 
@@ -18,8 +17,7 @@ const AuthProtectionContext = createContext<AuthProtectionType | null>(null);
 export function AuthProtectionProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { loading } = useAuth();
-    const { loadUser, logout, loggedIn } = useAppLoad();
+    const { loading, permissions, logout: storeLogout, loggedIn } = useAuthStore();
     const [isCheckingPermissions, setIsCheckingPermissions] = useState(true);
 
     useEffect(() => {
@@ -27,55 +25,33 @@ export function AuthProtectionProvider({ children }: { children: React.ReactNode
         if (!pathname) return;
 
         const isLoggedIn = loggedIn();
-        const user = loadUser();
-        setIsCheckingPermissions(true);
 
-        if (isLoggedIn && publicPaths.includes(pathname)) {
-            router.push('/dashboard');
+        if (!isLoggedIn && !publicPaths.includes(pathname) && pathname !== '/auth/login') {
+            router.replace('/auth/login');
             return;
-        }
-
-        if (!isLoggedIn && !publicPaths.includes(pathname)) {
-            router.push('/auth/login');
-            return;
-        }
-
-        if (isLoggedIn && !publicPaths.includes(pathname)) {
-            const hasPermission = checkUserPermissions(pathname, user?.permissions || []);
-            if (!hasPermission) {
-                router.push('/misc/permission-denied');
-                return;
-            }
         }
 
         if (isLoggedIn && pathname === '/') {
-            router.push('/dashboard');
+            router.replace('/dashboard');
             return;
         }
 
-        if (!isLoggedIn && pathname === '/') {
-            router.push('/auth/login');
-            return;
-        }
-
-        if (!isLoggedIn && pathname === '/misc/permission-denied') {
-            router.push('/auth/login');
+        if (isLoggedIn && publicPaths.includes(pathname) && pathname !== '/dashboard') {
+            router.replace('/dashboard');
             return;
         }
 
         setIsCheckingPermissions(false);
 
-    }, [pathname, loading, loggedIn, loadUser]);
+    }, [pathname, loading, loggedIn]);
 
     const handleLogout = () => {
-        setIsCheckingPermissions(true);
-        logout();
-        router.push('/auth/login');
+        storeLogout();
+        router.replace('/auth/login');
     };
 
     const checkPermission = (path: string): boolean => {
-        const user = loadUser();
-        return checkUserPermissions(path, user?.permissions || []);
+        return checkUserPermissions(path, permissions || []);
     };
 
     return (

@@ -66,18 +66,24 @@ export function RoleRouteMappingDialog({
       interface RoutesResponse {
         payload: Route[];
       }
-      apiFetch<RoutesResponse>(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify(requestBody) })
+      const controller = new AbortController();
+      apiFetch<RoutesResponse>(Endpoint.ROUTE, { method: HttpMethod.POST, body: JSON.stringify(requestBody), signal: controller.signal })
         .then((response) => {
           if (response.payload) {
             setRoutes(response.payload);
           }
         })
-        .catch(() => toast.error("Failed to load routes"))
+        .catch((err) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            toast.error("Failed to load routes");
+          }
+        })
         .finally(() => setIsLoadingRoutes(false));
 
       reset({
         routeIds: existingMappings || [],
       });
+      return () => controller.abort();
     }
   }, [open, role?.id]);
 

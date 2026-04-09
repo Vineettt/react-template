@@ -6,12 +6,10 @@ import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
 import { Endpoint } from "@/constants/route";
 import { apiFetch } from "@/utils/apiUtils";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { RoleRouteMappingDialog } from "@/components/dialogs/role-route-mapping/modify";
-import { UpdateRouteDialog } from "@/components/dialogs/route/update";
 import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
-import { useDialog } from "@/hooks/useDialog";
+import { logger } from "@/utils/logger";
 
 interface Role {
   id: string;
@@ -32,14 +30,6 @@ export default function RoleRouteMapping() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const tableRef = useRef<{ refetch: () => void }>(null);
-
-  const mappingDialog = useDialog<Role>({
-    onSuccess: () => tableRef.current?.refetch(),
-  });
-
-  const routeEditDialog = useDialog<RoleRouteMapping>({
-    onSuccess: () => tableRef.current?.refetch(),
-  });
 
   interface DeleteMutationResponse {
     message?: string;
@@ -69,7 +59,7 @@ export default function RoleRouteMapping() {
           setSelectedRole(rolesData[0].id);
         }
       } catch (error) {
-        console.error("Failed to fetch roles:", error);
+        logger.error("Failed to fetch roles:", error);
         toast.error("Failed to fetch roles");
       }
     };
@@ -80,20 +70,6 @@ export default function RoleRouteMapping() {
     return <GlobalLoading message="Checking permissions..." />;
   }
 
-  const handleAddClick = useCallback(() => {
-    const role = roles.find(r => r.id === selectedRole);
-    mappingDialog.open(role || undefined);
-  }, [roles, selectedRole, mappingDialog]);
-
-  const handleEditClick = useCallback((mapping: RoleRouteMapping) => {
-    const role = roles.find(r => r.id === selectedRole);
-    mappingDialog.open(role || undefined);
-  }, [roles, selectedRole, mappingDialog]);
-
-  const handleRouteEditClick = useCallback((mapping: RoleRouteMapping) => {
-    routeEditDialog.open(mapping);
-  }, [routeEditDialog]);
-
   const columns: Column<RoleRouteMapping>[] = useMemo(() => [
     { key: "role", header: "Role", accessor: (m: RoleRouteMapping) => m.role },
     { key: "endpoint", header: "Endpoint", accessor: (m: RoleRouteMapping) => m.endpoint },
@@ -103,20 +79,13 @@ export default function RoleRouteMapping() {
 
   const actions: Action<RoleRouteMapping>[] = useMemo(() => [
     {
-      key: "edit",
-      icon: <Pencil className="h-4 w-4" />,
-      onClick: handleRouteEditClick,
-      variant: "ghost",
-      size: "icon",
-    },
-    {
       key: "delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: (mapping: RoleRouteMapping) => handleDelete(mapping.id),
       variant: "ghost",
       size: "icon",
     },
-  ], [handleRouteEditClick, handleDelete]);
+  ], [handleDelete]);
 
 
   const roleSelect = (
@@ -139,32 +108,12 @@ export default function RoleRouteMapping() {
         title="Role Route Mapping"
         endpoint={Endpoint.ROLE_ROUTE_MAPPINGS}
         columns={columns}
-        showAddButton={true}
-        onAddClick={handleAddClick}
         keyExtractor={(m) => m.id}
         headerChildren={roleSelect}
         actions={actions}
         roleFilter={selectedRole}
         emptyMessage="No mappings found"
         ref={tableRef}
-      />
-      <RoleRouteMappingDialog
-        open={mappingDialog.isOpen}
-        onOpenChange={(open) => !open && mappingDialog.close()}
-        role={mappingDialog.selectedItem}
-        onSuccess={mappingDialog.onSuccess}
-      />
-      <UpdateRouteDialog
-        open={routeEditDialog.isOpen}
-        onOpenChange={(open) => !open && routeEditDialog.close()}
-        route={routeEditDialog.selectedItem ? {
-          id: routeEditDialog.selectedItem.route_id,
-          endpoint: routeEditDialog.selectedItem.endpoint,
-          handler: routeEditDialog.selectedItem.handler,
-          method: routeEditDialog.selectedItem.method,
-        } : null}
-        roleId={selectedRole}
-        onSuccess={routeEditDialog.onSuccess}
       />
     </div>
   );

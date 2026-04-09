@@ -104,14 +104,20 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
       interface StatusResponse {
         payload: UserStatus[];
       }
-      apiFetch<StatusResponse>(Endpoint.USER_STATUS)
+      const controller = new AbortController();
+      apiFetch<StatusResponse>(Endpoint.USER_STATUS, { signal: controller.signal })
         .then((response) => {
           if (response.payload) {
             setStatuses(response.payload || []);
           }
         })
-        .catch(() => toast.error("Failed to load status options"))
+        .catch((err) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            toast.error("Failed to load status options");
+          }
+        })
         .finally(() => setIsLoadingStatuses(false));
+      return () => controller.abort();
     }
   }, [open, user, reset]);
 

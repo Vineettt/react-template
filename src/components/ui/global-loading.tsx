@@ -24,7 +24,6 @@ export function GlobalLoading({
   );
 }
 
-// Hook for easy access to global loading state
 export function useGlobalLoading() {
   return GlobalLoading;
 }

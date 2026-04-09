@@ -2,12 +2,26 @@ import { useStorage } from "./useStorage";
 import { STORAGE_KEYS } from "../constants/storage";
 import { useCallback } from "react";
 
+interface UserPermission {
+  endpoint: string;
+  method: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles?: string[];
+  permissions?: UserPermission[];
+}
+
 export const useAppLoad = () => {
     const { getItem, setItem, removeItem } = useStorage();
 
-    const storeUserData = useCallback((user: any, token?: string) => {
-        setItem(STORAGE_KEYS.USER, user);
-        setItem(STORAGE_KEYS.PERMISSIONS, user.permissions || []);
+    const storeUserData = useCallback((user: User, token?: string) => {
+        setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+        setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(user.permissions || []));
         
         if(token){
           setItem(STORAGE_KEYS.TOKEN, token);

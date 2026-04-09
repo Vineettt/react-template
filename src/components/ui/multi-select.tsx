@@ -42,17 +42,29 @@ export function MultiSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const handleToggle = (value: string) => {
+  const handleToggle = React.useCallback((value: string) => {
     if (selected.includes(value)) {
       onChange(selected.filter((v) => v !== value))
     } else {
       onChange([...selected, value])
     }
-  }
+  }, [selected, onChange])
 
-  const handleRemove = (value: string) => {
+  const handleRemove = React.useCallback((value: string) => {
     onChange(selected.filter((v) => v !== value))
-  }
+  }, [selected, onChange])
+
+  const handleDropdownClick = React.useCallback(() => {
+    if (!disabled) {
+      setIsOpen(prev => !prev)
+    }
+  }, [disabled])
+
+  const handleBadgeRemove = React.useCallback((label: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    const value = options.find((opt) => opt.label === label)?.value
+    if (value) handleRemove(value)
+  }, [options, handleRemove])
 
   const selectedLabels = selected
     .map((value) => options.find((opt) => opt.value === value)?.label)
@@ -66,7 +78,7 @@ export function MultiSelect({
         </label>
       )}
       <div
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleDropdownClick}
         className={cn(
           "flex min-h-[40px] w-full cursor-pointer flex-wrap items-center gap-1.5 rounded-lg border border-input bg-transparent px-3 py-2 text-sm transition-colors outline-none",
           "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -89,11 +101,7 @@ export function MultiSelect({
                 {label}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const value = options.find((opt) => opt.label === label)?.value
-                    if (value) handleRemove(value)
-                  }}
+                  onClick={(e) => handleBadgeRemove(label, e)}
                   className="ml-1 rounded-full p-0.5 hover:bg-muted"
                 >
                   <X className="h-3 w-3" />

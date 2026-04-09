@@ -4,10 +4,15 @@ import { useRouter } from "next/navigation";
 import { useLogout } from "@/contexts/AuthProtectionContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback } from "react";
 
 export default function PermissionDenied() {
   const router = useRouter();
   const { logout } = useLogout();
+
+  const handleGoHome = useCallback(() => {
+    router.push('/');
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -35,14 +40,14 @@ export default function PermissionDenied() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
-            onClick={() => router.push('/')}
+            onClick={handleGoHome}
             className="w-full"
             variant="default"
           >
             Go Home
           </Button>
-          <Button 
-            onClick={logout} 
+          <Button
+            onClick={logout}
             className="w-full"
             variant="destructive"
           >

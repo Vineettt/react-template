@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { apiFetch, ApiError } from "@/utils/apiUtils";
+import { apiFetch, ApiError, getErrorMessage } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
 import { toast } from "sonner";
 
@@ -54,7 +54,7 @@ export function useMutation<T = unknown, R = unknown>({
             : new ApiError(500, "Unknown error");
 
         if (errorMessage) {
-          toast.error(apiError.message || errorMessage);
+          toast.error(getErrorMessage(apiError) || errorMessage);
         }
 
         onError?.(apiError);

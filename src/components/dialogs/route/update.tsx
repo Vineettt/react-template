@@ -111,14 +111,20 @@ export function UpdateRouteDialog({ open, onOpenChange, onSuccess, route, roleId
       interface HandlersResponse {
         payload: HandlerOption[];
       }
-      apiFetch<HandlersResponse>(endpoint)
+      const controller = new AbortController();
+      apiFetch<HandlersResponse>(endpoint, { signal: controller.signal })
         .then((response) => {
           if (response.payload) {
             setHandlers(response.payload);
           }
         })
-        .catch(() => toast.error("Failed to load handlers"))
+        .catch((err) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            toast.error("Failed to load handlers");
+          }
+        })
         .finally(() => setIsLoadingHandlers(false));
+      return () => controller.abort();
     }
   }, [open, roleId]);
 

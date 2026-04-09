@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { apiFetch, ApiError } from "@/utils/apiUtils";
 import { Endpoint } from "@/constants/route";
+import { logger } from "@/utils/logger";
 
 interface UserData {
   id: string;
@@ -39,11 +40,11 @@ export const useUserFetch = () => {
       if (err instanceof ApiError) {
         errorMessage = `Failed to fetch user: ${err.status}`;
         if (err.status !== 401 && err.status !== 403) {
-          console.error("User fetch error:", errorMessage);
+          logger.error("User fetch error:", errorMessage);
         }
       } else if (err instanceof Error) {
         errorMessage = err.message;
-        console.error("User fetch error:", errorMessage);
+        logger.error("User fetch error:", errorMessage);
       }
 
       return null;

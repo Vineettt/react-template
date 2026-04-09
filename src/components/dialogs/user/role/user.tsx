@@ -91,7 +91,8 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
       interface RolesResponse {
         payload: Role[];
       }
-      apiFetch<RolesResponse>(Endpoint.ROLE)
+      const controller = new AbortController();
+      apiFetch<RolesResponse>(Endpoint.ROLE, { signal: controller.signal })
         .then((response) => {
           if (response.payload) {
             const roleList = response.payload || [];
@@ -105,8 +106,13 @@ export function UserRoleDialog({ open, onOpenChange, onSuccess, userRole }: User
             });
           }
         })
-        .catch(() => toast.error("Failed to load roles"))
+        .catch((err) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            toast.error("Failed to load roles");
+          }
+        })
         .finally(() => setIsLoadingRoles(false));
+      return () => controller.abort();
     }
   }, [open, userRole, reset]);
 

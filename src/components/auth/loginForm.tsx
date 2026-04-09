@@ -5,10 +5,10 @@ import { mapApiErrorsToForm } from "@/utils/formErrorUtils"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { apiFetch, ApiError } from "@/utils/apiUtils"
+import { apiFetch, ApiError, getErrorMessage } from "@/utils/apiUtils"
 import { Endpoint } from "@/constants/route"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { toast } from "sonner"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group"
 import { Eye, EyeOff } from "lucide-react"
@@ -19,10 +19,26 @@ interface LoginFormData {
   password: string
 }
 
+interface LoginResponse {
+  user?: {
+    id: string
+    email: string
+    first_name: string
+    last_name: string
+  }
+  token?: string
+  message?: string
+  errors?: Record<string, string>
+}
+
 export function LoginForm() {
     const router = useRouter()
     const [showPassword, setShowPassword] = useState(false)
     const { storeUserData } = useAppLoad()
+
+    const togglePassword = useCallback(() => {
+        setShowPassword(prev => !prev)
+    }, [])
 
     const {
         register,
@@ -38,7 +54,7 @@ export function LoginForm() {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            const response = await apiFetch(Endpoint.LOGIN, {
+            const response = await apiFetch<LoginResponse>(Endpoint.LOGIN, {
                 method: "POST",
                 body: JSON.stringify({ email: data.email, password: data.password })
             })
@@ -56,16 +72,11 @@ export function LoginForm() {
                 );
                 
                 if (!hasFieldErrors) {
-                    const message = response.message || response?.errors?.message || "Login failed";
-                    toast.error(message);
+                    toast.error(getErrorMessage(response) || "Login failed");
                 }
             }
         } catch (error) {
-            if (error instanceof ApiError) {
-                toast.error(error.message)
-            } else {
-                toast.error("An unexpected error occurred")
-            }
+            toast.error(getErrorMessage(error))
         }
     }
 
@@ -114,7 +125,7 @@ export function LoginForm() {
                                     type="button"
                                     variant="ghost"
                                     size="icon-sm"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={togglePassword}
                                     aria-label={showPassword ? "Hide password" : "Show password"}
                                 >
                                     {showPassword ? (

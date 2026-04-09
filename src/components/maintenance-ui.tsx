@@ -1,33 +1,18 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
-import { useMaintenance } from "@/hooks/useMaintenance";
+import { useEffect } from "react";
+import { useMaintenanceStore } from "@/stores/maintenanceStore";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Wrench } from "lucide-react";
 
-interface MaintenanceContextType {
-  isMaintenanceMode: boolean;
-  isChecking: boolean;
-  error: string | null;
-  retry: () => void;
-}
+export function MaintenanceUI({ children }: { children: React.ReactNode }) {
+  const { isMaintenanceMode, isChecking, error, checkServerStatus } = useMaintenanceStore();
 
-export const MaintenanceContext = createContext<MaintenanceContextType | null>(null);
-
-export function useMaintenanceContext() {
-  const context = useContext(MaintenanceContext);
-  if (!context) {
-    throw new Error("useMaintenanceContext must be used within MaintenanceProvider");
-  }
-  return context;
-}
-
-interface MaintenanceProviderProps {
-  children: ReactNode;
-}
-
-export function MaintenanceProvider({ children }: MaintenanceProviderProps) {
-  const { isMaintenanceMode, isChecking, error, retry } = useMaintenance();
+  useEffect(() => {
+    const controller = new AbortController();
+    checkServerStatus(controller.signal);
+    return () => controller.abort();
+  }, [checkServerStatus]);
 
   if (isChecking) {
     return (
@@ -65,9 +50,5 @@ export function MaintenanceProvider({ children }: MaintenanceProviderProps) {
     );
   }
 
-  return (
-    <MaintenanceContext.Provider value={{ isMaintenanceMode, isChecking, error, retry }}>
-      {children}
-    </MaintenanceContext.Provider>
-  );
+  return <>{children}</>;
 }
