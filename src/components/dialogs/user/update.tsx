@@ -87,25 +87,19 @@ export function UpdateUserDialog({ open, onOpenChange, onSuccess, user }: Update
   });
 
   useEffect(() => {
-    if (open) {
+    if (open && user) {
+      reset({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        status: user.user_status,
+      });
+
       setIsLoadingStatuses(true);
       apiFetch(Endpoint.USER_STATUS)
         .then((response) => {
           if (response.payload) {
-            const data = response?.payload || [];
-            setStatuses(data);
-            if (user && data.length > 0) {
-              const matchingStatus = data.find(
-                (s: UserStatus) => s.value?.toLowerCase()?.includes(user.user_status?.toLowerCase())
-              );
-              const statusValue = matchingStatus?.value || user.user_status;
-              reset({
-                first_name: user.first_name,
-                last_name: user.last_name,
-                email: user.email,
-                status: statusValue,
-              });
-            }
+            setStatuses(response.payload || []);
           }
         })
         .catch(() => toast.error("Failed to load status options"))

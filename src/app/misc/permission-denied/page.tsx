@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useLogout } from "@/contexts/AuthProtectionContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function PermissionDenied() {
+  const router = useRouter();
   const { logout } = useLogout();
 
   return (
@@ -32,8 +34,8 @@ export default function PermissionDenied() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button 
-            onClick={() => window.location.href = '/'} 
+          <Button
+            onClick={() => router.push('/')}
             className="w-full"
             variant="default"
           >

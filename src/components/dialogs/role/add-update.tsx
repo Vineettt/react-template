@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ interface RoleDialogProps {
 
 export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogProps) {
   const isEditing = !!role;
-  const pendingSubmitRef = useRef<RoleFormData | null>(null);
+  const [pendingConfirmData, setPendingConfirmData] = useState<RoleFormData | null>(null);
 
   const {
     register,
@@ -68,13 +68,14 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
     }
   }, [open, role, reset]);
 
-  const executeSubmit = async (data: RoleFormData, ignoreKey: boolean) => {
+  const executeSubmit = useCallback(async (data: RoleFormData, ignoreKey: boolean) => {
     const payload = isEditing
       ? { role: data.role, id: role?.id, ignore_key: ignoreKey ? "EDIT_ROLE" : undefined }
       : { role: data.role };
 
     await submitRole({ roles: [payload] });
-  };
+    setPendingConfirmData(null);
+  }, [isEditing, role?.id, submitRole]);
 
   const onSubmit = async (data: RoleFormData) => {
     if (isEditing && data.role === role?.role) {
@@ -88,22 +89,19 @@ export function RoleDialog({ open, onOpenChange, onSuccess, role }: RoleDialogPr
     });
 
     if (response?.warnings && isEditing) {
-      pendingSubmitRef.current = data;
+      setPendingConfirmData(data);
       toast.warning(response.warnings.message || "Warning: Proceed with caution", {
         duration: 10000,
         action: {
           label: "Yes",
           onClick: () => {
-            if (pendingSubmitRef.current) {
-              executeSubmit(pendingSubmitRef.current, true);
-              pendingSubmitRef.current = null;
-            }
+            executeSubmit(data, true);
           },
         },
         cancel: {
           label: "No",
           onClick: () => {
-            pendingSubmitRef.current = null;
+            setPendingConfirmData(null);
           },
         },
       });

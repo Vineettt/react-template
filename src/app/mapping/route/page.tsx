@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useRef, useCallback, useMemo } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
 import { Endpoint } from "@/constants/route";
 import { Pencil } from "lucide-react";
 import { UpdateRouteDialog } from "@/components/dialogs/route/update";
+import { useDialog } from "@/hooks/useDialog";
 
 interface Route {
   id: string;
@@ -17,37 +18,34 @@ interface Route {
 
 export default function Routes() {
   const { isCheckingPermissions } = useAuthProtection();
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const tableRef = useRef<{ refetch: () => void }>(null);
+
+  const editDialog = useDialog<Route>({
+    onSuccess: () => tableRef.current?.refetch(),
+  });
 
   if (isCheckingPermissions) {
     return <GlobalLoading message="Checking permissions..." />;
   }
 
-  const handleEditClick = (route: Route) => {
-    setSelectedRoute(route);
-    setIsEditModalOpen(true);
-  };
+  const handleEditClick = useCallback((route: Route) => {
+    editDialog.open(route);
+  }, [editDialog]);
 
-  const columns: Column<Route>[] = [
+  const columns: Column<Route>[] = useMemo(() => [
     { key: "endpoint", header: "Endpoint", accessor: (r: Route) => r.endpoint },
     { key: "handler", header: "Handler", accessor: (r: Route) => r.handler },
     { key: "method", header: "Method", accessor: (r: Route) => r.method },
-  ];
+  ], []);
 
-  const actions: Action<Route>[] = [
+  const actions: Action<Route>[] = useMemo(() => [
     {
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleEditClick,
       variant: "ghost",
       size: "icon",
     },
-  ];
-
-  const handleSuccess = () => {
-    tableRef.current?.refetch();
-  };
+  ], [handleEditClick]);
 
   return (
     <div className="p-4 flex flex-col gap-2.5">
@@ -61,13 +59,10 @@ export default function Routes() {
         ref={tableRef}
       />
       <UpdateRouteDialog
-        open={isEditModalOpen}
-        onOpenChange={(open) => {
-          setIsEditModalOpen(open);
-          if (!open) setSelectedRoute(null);
-        }}
-        route={selectedRoute}
-        onSuccess={handleSuccess}
+        open={editDialog.isOpen}
+        onOpenChange={(open) => !open && editDialog.close()}
+        route={editDialog.selectedItem}
+        onSuccess={editDialog.onSuccess}
       />
     </div>
   );

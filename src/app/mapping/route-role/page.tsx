@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuthProtection } from "@/contexts/AuthProtectionContext";
 import { GlobalLoading } from "@/components/ui/global-loading";
 import { DataTable, Column, Action } from "@/components/data-table";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { RoleRouteMappingDialog } from "@/components/dialogs/role-route-mapping/modify";
 import { UpdateRouteDialog } from "@/components/dialogs/route/update";
 import { useMutationWithConfirm } from "@/hooks/useMutationWithConfirm";
+import { useDialog } from "@/hooks/useDialog";
 
 interface Role {
   id: string;
@@ -30,11 +31,15 @@ export default function RoleRouteMapping() {
   const { isCheckingPermissions } = useAuthProtection();
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [selectedRoleForMapping, setSelectedRoleForMapping] = useState<Role | null>(null);
-  const [isRouteEditModalOpen, setIsRouteEditModalOpen] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<RoleRouteMapping | null>(null);
   const tableRef = useRef<{ refetch: () => void }>(null);
+
+  const mappingDialog = useDialog<Role>({
+    onSuccess: () => tableRef.current?.refetch(),
+  });
+
+  const routeEditDialog = useDialog<RoleRouteMapping>({
+    onSuccess: () => tableRef.current?.refetch(),
+  });
 
   const { mutate: handleDelete } = useMutationWithConfirm<string, any>({
     endpoint: Endpoint.ROLE_ROUTE_MAPPING,
@@ -66,31 +71,28 @@ export default function RoleRouteMapping() {
     return <GlobalLoading message="Checking permissions..." />;
   }
 
-  const handleAddClick = () => {
+  const handleAddClick = useCallback(() => {
     const role = roles.find(r => r.id === selectedRole);
-    setSelectedRoleForMapping(role || null);
-    setIsAddModalOpen(true);
-  };
+    mappingDialog.open(role || undefined);
+  }, [roles, selectedRole, mappingDialog]);
 
-  const handleEditClick = (mapping: RoleRouteMapping) => {
+  const handleEditClick = useCallback((mapping: RoleRouteMapping) => {
     const role = roles.find(r => r.id === selectedRole);
-    setSelectedRoleForMapping(role || null);
-    setIsAddModalOpen(true);
-  };
+    mappingDialog.open(role || undefined);
+  }, [roles, selectedRole, mappingDialog]);
 
-  const handleRouteEditClick = (mapping: RoleRouteMapping) => {
-    setSelectedRoute(mapping);
-    setIsRouteEditModalOpen(true);
-  };
+  const handleRouteEditClick = useCallback((mapping: RoleRouteMapping) => {
+    routeEditDialog.open(mapping);
+  }, [routeEditDialog]);
 
-  const columns: Column<RoleRouteMapping>[] = [
+  const columns: Column<RoleRouteMapping>[] = useMemo(() => [
     { key: "role", header: "Role", accessor: (m: RoleRouteMapping) => m.role },
     { key: "endpoint", header: "Endpoint", accessor: (m: RoleRouteMapping) => m.endpoint },
     { key: "handler", header: "Handler", accessor: (m: RoleRouteMapping) => m.handler },
     { key: "method", header: "Method", accessor: (m: RoleRouteMapping) => m.method },
-  ];
+  ], []);
 
-  const actions: Action<RoleRouteMapping>[] = [
+  const actions: Action<RoleRouteMapping>[] = useMemo(() => [
     {
       icon: <Pencil className="h-4 w-4" />,
       onClick: handleRouteEditClick,
@@ -103,19 +105,8 @@ export default function RoleRouteMapping() {
       variant: "ghost",
       size: "icon",
     },
-  ];
+  ], [handleRouteEditClick, handleDelete]);
 
-  const handleSuccess = () => {
-    tableRef.current?.refetch();
-    setIsAddModalOpen(false);
-    setSelectedRoleForMapping(null);
-  };
-
-  const handleRouteSuccess = () => {
-    tableRef.current?.refetch();
-    setIsRouteEditModalOpen(false);
-    setSelectedRoute(null);
-  };
 
   const roleSelect = (
     <select
@@ -147,28 +138,22 @@ export default function RoleRouteMapping() {
         ref={tableRef}
       />
       <RoleRouteMappingDialog
-        open={isAddModalOpen}
-        onOpenChange={(open) => {
-          setIsAddModalOpen(open);
-          if (!open) setSelectedRoleForMapping(null);
-        }}
-        role={selectedRoleForMapping}
-        onSuccess={handleSuccess}
+        open={mappingDialog.isOpen}
+        onOpenChange={(open) => !open && mappingDialog.close()}
+        role={mappingDialog.selectedItem}
+        onSuccess={mappingDialog.onSuccess}
       />
       <UpdateRouteDialog
-        open={isRouteEditModalOpen}
-        onOpenChange={(open) => {
-          setIsRouteEditModalOpen(open);
-          if (!open) setSelectedRoute(null);
-        }}
-        route={selectedRoute ? {
-          id: selectedRoute.route_id,
-          endpoint: selectedRoute.endpoint,
-          handler: selectedRoute.handler,
-          method: selectedRoute.method,
+        open={routeEditDialog.isOpen}
+        onOpenChange={(open) => !open && routeEditDialog.close()}
+        route={routeEditDialog.selectedItem ? {
+          id: routeEditDialog.selectedItem.route_id,
+          endpoint: routeEditDialog.selectedItem.endpoint,
+          handler: routeEditDialog.selectedItem.handler,
+          method: routeEditDialog.selectedItem.method,
         } : null}
         roleId={selectedRole}
-        onSuccess={handleRouteSuccess}
+        onSuccess={routeEditDialog.onSuccess}
       />
     </div>
   );

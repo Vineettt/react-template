@@ -89,15 +89,6 @@ export const api = {
     apiFetch<T>(endpoint, { method: 'DELETE', headers }),
 };
 
-export const useApi = () => {
-  return {
-    get: api.get,
-    post: api.post,
-    put: api.put,
-    patch: api.patch,
-    delete: api.delete,
-  };
-};
 
 export const getErrorMessage = (error: any): string => {
   if (typeof error === 'string') {
